@@ -28,8 +28,9 @@ const register = asyncwrapper(async (req, res, next) => {
     email,
     password,
     phoneNumber,
+    governorate,
     city,
-    location,
+    address,
     role
   } = req.body;
 
@@ -51,7 +52,8 @@ const register = asyncwrapper(async (req, res, next) => {
     password: hashedPassword,
     phoneNumber,
     city,
-    location,
+    governorate,
+    address,
     role: allowedRole
   });
 
