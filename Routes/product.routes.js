@@ -11,7 +11,7 @@ const isAdmin = require('../Middlewares/isAdmin');
 
 // Public
 router.get('/', ProductController.getAllProducts);
-router.get('/:id', ProductController.getProductById);
+
 
 // Admin
 
@@ -26,7 +26,8 @@ router.patch('/:id', verifyToken, isAdmin, upload.array('images', 5), ProductCon
 
 router.delete('/:id',verifyToken,allowedTo(userRoles.ADMIN),ProductController.deleteProduct);
 
-
+// Public
+router.get('/:id', ProductController.getProductById);
 
 
 module.exports = router;

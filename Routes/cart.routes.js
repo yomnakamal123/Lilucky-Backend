@@ -6,8 +6,8 @@ router.use(verifyToken);
 
 router.post('/',verifyToken,cartcontroller.addToCart);
 router.get('/',verifyToken,cartcontroller.getCart);
-router.delete('/:productId',verifyToken,cartcontroller.removeFromCart);
 router.delete('/',verifyToken,cartcontroller.clearCart);
+router.delete('/:productId',verifyToken,cartcontroller.removeFromCart);
 
 
 
