@@ -19,7 +19,7 @@ router.patch('/assign-category',verifyToken,isAdmin,ProductController.assignCate
 
 
 // images = field name
-router.post('/',verifyToken,allowedTo(userRoles.ADMIN), upload.array('images', 5),ProductController.createProduct);
+router.post('/add-product',verifyToken,allowedTo(userRoles.ADMIN), upload.array('images', 5),ProductController.createProduct);
 
 
 router.patch('/:id', verifyToken, isAdmin, upload.array('images', 5), ProductController.updateProduct);

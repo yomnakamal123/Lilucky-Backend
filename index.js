@@ -15,13 +15,19 @@ mongoose.connect(url)
   .catch(err => console.error("MongoDB Connection Error:", err.message));
 
 
-app.use(cors());
+// app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/test', (req, res) => {
   res.send('Server is working');
 });
+
+
+app.use(cors({
+  origin: 'http://localhost:3000', // السماح فقط للـ frontend
+  credentials: true // للسماح بإرسال الكوكيز مع الطلب
+}));
 
 const authrouter = require('./Routes/auth.routes');
 
