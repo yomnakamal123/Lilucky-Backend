@@ -21,4 +21,7 @@ router.get('/all_orders',verifyToken,isAdmin,OrderController.getAllOrders);
 
 router.patch('/:id/status',verifyToken,isAdmin,OrderController.updateOrderStatus);
 
+router.get('/most-selling',verifyToken,isAdmin,OrderController.getMostSellingProduct);
+
+
 module.exports = router;

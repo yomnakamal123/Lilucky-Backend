@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
 const userRoles = require('../user.roles');
+const { toNumber } = require('lodash');
 
 const userSchema = new mongoose.Schema(
   {
@@ -49,7 +50,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: Object.values(userRoles),
       default: userRoles.CLIENT
-    }
+    },
+    otp:Number,
+    otpExpires: Date
   },
   { timestamps: true }
 );

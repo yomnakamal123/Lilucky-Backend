@@ -7,6 +7,10 @@ const express=require('express');
 const cors=require('cors');
 const app=express();
 const path = require('path');
+const cookieParser = require('cookie-parser');
+const i18n = require('./i18n.config'); // import config
+const languageRoutes = require('./Routes/language.routes');
+
 
 const mongoose=require('mongoose');
 const url =process.env.MONGO_URL;
@@ -15,9 +19,9 @@ mongoose.connect(url)
   .catch(err => console.error("MongoDB Connection Error:", err.message));
 
 
-// app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api', languageRoutes);
 
 app.get('/test', (req, res) => {
   res.send('Server is working');
@@ -25,8 +29,8 @@ app.get('/test', (req, res) => {
 
 
 app.use(cors({
-  origin: 'http://localhost:3000', // السماح فقط للـ frontend
-  credentials: true // للسماح بإرسال الكوكيز مع الطلب
+  origin: 'http://localhost:3000',
+  credentials: true 
 }));
 
 const authrouter = require('./Routes/auth.routes');
@@ -73,6 +77,9 @@ app.use((err, req, res, next) => {
   });
 });
 
+app.get('/', (req, res) => {
+  res.send(`<h1>${res.__('welcome')}</h1>`);
+});
 
 app.listen(process.env.PORT || 5000,()=>{
     console.log("Listening In Port 5000");

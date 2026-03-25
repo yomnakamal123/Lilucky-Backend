@@ -149,10 +149,69 @@ const updateOrderStatus = asyncwrapper(async (req, res, next) => {
 });
 
 
+const getMostSellingProduct = asyncwrapper(async (req, res, next) => {
+  const result = await Order.aggregate([
+    // Optional: only delivered orders
+    // { $match: { orderStatus: 'delivered' } },
+
+    // 1️⃣ Unwind items array
+    { $unwind: '$items' },
+
+    // 2️⃣ Group by productId and sum quantities
+    {
+      $group: {
+        _id: '$items.productId',
+        totalSold: { $sum: '$items.quantity' }
+      }
+    },
+
+    // 3️⃣ Sort descending
+    { $sort: { totalSold: -1 } },
+
+    // 4️⃣ Take top 1
+    { $limit: 1 },
+
+    // 5️⃣ Lookup product details
+    {
+      $lookup: {
+        from: 'products',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'product'
+      }
+    },
+
+    { $unwind: '$product' },
+
+    // 6️⃣ Project only id and name
+    {
+      $project: {
+        _id: 0,
+        totalSold: 1,
+        product: {
+          _id: '$product._id',
+          name: '$product.name'
+        }
+      }
+    }
+  ]);
+
+  if (!result.length) {
+    return next(appError.create('No sales found', 404));
+  }
+
+  res.status(200).json({
+    status: httpStatusText.SUCCESS,
+    data: result[0]
+  });
+});
+
+
 
 module.exports = {
   createOrder,
   getMyOrders,
   getAllOrders,
-  updateOrderStatus
+  updateOrderStatus,
+  getMostSellingProduct
 };
