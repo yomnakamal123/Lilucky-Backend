@@ -11,6 +11,7 @@ const bcrypt=require('bcryptjs');
    CLIENT FUNCTIONS
 =========================== */
 
+
 //User Profile
 const getMyProfile = asyncwrapper(async (req, res, next) => {
   const user = await User.findById(req.user.id).select('-password -__v');

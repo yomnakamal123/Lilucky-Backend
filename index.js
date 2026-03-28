@@ -19,9 +19,6 @@ mongoose.connect(url)
   .catch(err => console.error("MongoDB Connection Error:", err.message));
 
 
-app.use(cors());
-app.use(cookieParser());
-app.use(i18n.init); // initialize i18n
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api', languageRoutes);
@@ -29,6 +26,12 @@ app.use('/api', languageRoutes);
 app.get('/test', (req, res) => {
   res.send('Server is working');
 });
+
+
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true 
+}));
 
 const authrouter = require('./Routes/auth.routes');
 

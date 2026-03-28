@@ -9,8 +9,9 @@ const upload = require('../Middlewares/uploadImage');
 const isAdmin = require('../Middlewares/isAdmin');
 
 
+router.get('/get-all', ProductController.getAllProducts);
 // Public
-router.get('/', ProductController.getAllProducts);
+router.get('/get-all-products', ProductController.getAllProducts);
 
 
 // Admin
@@ -19,15 +20,26 @@ router.patch('/assign-category',verifyToken,isAdmin,ProductController.assignCate
 
 
 // images = field name
-router.post('/',verifyToken,allowedTo(userRoles.ADMIN), upload.array('images', 5),ProductController.createProduct);
+router.post(
+  '/add-product',
+  verifyToken,
+  allowedTo(userRoles.ADMIN),
+  upload.any(), 
+  ProductController.createProduct
+);
 
-
-router.patch('/:id', verifyToken, isAdmin, upload.array('images', 5), ProductController.updateProduct);
+router.patch('/:id', verifyToken, isAdmin, upload.any(), ProductController.updateProduct);
 
 router.delete('/:id',verifyToken,allowedTo(userRoles.ADMIN),ProductController.deleteProduct);
 
 // Public
 router.get('/:id', ProductController.getProductById);
+router.get('/get/:id', ProductController.getProductById);
 
+// handle like product
+router.patch('/like/:id', ProductController.likeProduct);
+
+//delete wishlist
+router.get('/wishlist', ProductController.getWishlist);
 
 module.exports = router;

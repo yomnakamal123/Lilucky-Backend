@@ -8,15 +8,19 @@ const productSchema = new mongoose.Schema(
 
     price: { type: Number, required: true, min: 0 },
 
-    sizes: [{ type: String, enum: ['1Y', '2Y', '3Y', '4Y', '5Y'] }],
-
-    colors: { type: [String], required: true },
+    gender: { type: Boolean, required: true, },
 
     stock: { type: Number, required: true, min: 0 },
 
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
 
-    images: [String],
+    variants: [
+      {
+        color: { type: String, required: true },
+        sizes: [{ type: String, enum: ['1Y', '2Y', '3Y', '4Y', '5Y'] }],
+        images: [String]
+      }
+    ],
 
     isActive: { type: Boolean, default: true },
 

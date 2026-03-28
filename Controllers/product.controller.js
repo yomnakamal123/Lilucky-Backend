@@ -42,23 +42,61 @@ const getProductById = asyncwrapper(async (req, res, next) => {
    ADMIN FUNCTIONS
 =========================== */
 
+// const createProduct = asyncwrapper(async (req, res, next) => {
+//   const images = req.files
+//     ? req.files.map(file => `/uploads/products/${file.filename}`)
+//     : [];
+
+//   const product = await Product.create({
+//     ...req.body,
+//     images
+//   });
+
+//   res.status(201).json({
+//     status: httpStatusText.SUCCESS,
+//     data: product
+//   });
+// });
+
 const createProduct = asyncwrapper(async (req, res, next) => {
-  const images = req.files
-    ? req.files.map(file => `/uploads/products/${file.filename}`)
-    : [];
+  const variants = req.body.variants ? JSON.parse(req.body.variants) : [];
+
+  const files = req.files || [];
+
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+  // نحول files لـ object علشان نقدر نوصل بسهولة
+  const filesMap = {};
+
+  files.forEach((file) => {
+    if (!filesMap[file.fieldname]) {
+      filesMap[file.fieldname] = [];
+    }
+    filesMap[file.fieldname].push(file);
+  });
+
+  const formattedVariants = variants.map((variant, index) => {
+    const key = `variants[${index}][images]`;
+    const variantImages = filesMap[key] || [];
+    return {
+      color: variant.color,
+      sizes: variant.sizes || [],
+      images: variantImages.map(
+        f => `${baseUrl}/uploads/products/${f.filename}`
+      ),
+    };
+  });
 
   const product = await Product.create({
     ...req.body,
-    images
+    variants: formattedVariants,
   });
 
   res.status(201).json({
     status: httpStatusText.SUCCESS,
-    data: product
+    data: product,
   });
 });
-
-
 
 const updateProduct = asyncwrapper(async (req, res, next) => {
   const productId = req.params.id;
@@ -148,6 +186,26 @@ const assignCategoryToProduct = asyncwrapper(async (req, res, next) => {
   });
 });
 
+/* ===========================
+  PATCH /api/products/:id/like
+=========================== */
+
+const likeProduct = asyncwrapper(async (req, res, next) => {
+  const product = await Product.findById(req.params.id);
+  product.like = !product.like;
+  await product.save();
+
+  res.json(product);
+});
+///* ===========================
+//  OTHER FUNCTIONS
+//=========================== */
+// GET /api/products/wishlist
+const getWishlist = asyncwrapper(async (req, res, next) => {
+  const products = await Product.find({ like: true });
+  res.json(products);
+});
+
 module.exports = {
   getAllProducts,
   getProductById,
@@ -155,4 +213,7 @@ module.exports = {
   updateProduct,
   deleteProduct,
   assignCategoryToProduct,
+  likeProduct,
+  getWishlist
+
 };
