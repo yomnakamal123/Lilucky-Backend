@@ -8,11 +8,16 @@ const productSchema = new mongoose.Schema(
 
     price: { type: Number, required: true, min: 0 },
 
-    gender: { type: Boolean, required: true, },
-
+    gender: {
+      type: String,
+      enum: ["boys", "girls"],
+      required: true
+    },
     stock: { type: Number, required: true, min: 0 },
 
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+
+    material: { type: String, required: true, trim: true },
 
     variants: [
       {

@@ -12,7 +12,8 @@ router.get('/get-all',categorycontroller.getAllCategories);
 
 // Admin
 router.post('/add-category', verifyToken, isAdmin,categorycontroller.createCategory);
-router.patch('/:id', verifyToken, isAdmin, categorycontroller.updateCategory);
+router.get('/get-category/:id', categorycontroller.getCategoryById);
+router.patch('/editCategory/:id', verifyToken, isAdmin, categorycontroller.updateCategory);
 router.delete('/:id', verifyToken, isAdmin, categorycontroller.deleteCategory);
 
 module.exports = router;
