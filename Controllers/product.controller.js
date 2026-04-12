@@ -64,6 +64,8 @@ const createProduct = asyncwrapper(async (req, res, next) => {
   const files = req.files || [];
 
   const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+  // نحول files لـ object علشان نقدر نوصل بسهولة
   const filesMap = {};
 
   files.forEach((file) => {

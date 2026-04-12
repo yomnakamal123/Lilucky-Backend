@@ -22,9 +22,6 @@ const getCategoryNames = asyncwrapper(async (req, res) => {
   });
 });
 
-/* ===========================
-   get by id FUNCTIONS
-=========================== */
 const getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
