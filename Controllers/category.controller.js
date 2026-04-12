@@ -5,6 +5,7 @@ const slugify = require('slugify');
 
 
 
+
 const getCategoryNames = asyncwrapper(async (req, res) => {
   const lang = req.query.lang === 'ar' ? 'arName' : 'enName';
 
@@ -20,6 +21,31 @@ const getCategoryNames = asyncwrapper(async (req, res) => {
     data: { categoryNames }
   });
 });
+
+/* ===========================
+   get by id FUNCTIONS
+=========================== */
+const getCategoryById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found",
+      });
+    }
+    res.status(200).json({
+      success: true,
+      data: category,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 /* ===========================
    PUBLIC FUNCTIONS
@@ -94,6 +120,7 @@ const deleteCategory = asyncwrapper(async (req, res, next) => {
 
 module.exports = {
   getCategoryNames,
+  getCategoryById,
   getAllCategories,
   createCategory,
   updateCategory,

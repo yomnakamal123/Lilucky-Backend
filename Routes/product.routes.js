@@ -28,6 +28,10 @@ router.post(
   ProductController.createProduct
 );
 
+//delete wishlist
+router.get('/wishlist', verifyToken, ProductController.getWishlist);
+router.post('/wishlist/merge', verifyToken, ProductController.mergeWishlist);
+
 router.patch('/:id', verifyToken, isAdmin, upload.any(), ProductController.updateProduct);
 
 router.delete('/:id',verifyToken,allowedTo(userRoles.ADMIN),ProductController.deleteProduct);
@@ -37,9 +41,7 @@ router.get('/:id', ProductController.getProductById);
 router.get('/get/:id', ProductController.getProductById);
 
 // handle like product
-router.patch('/like/:id', ProductController.likeProduct);
+router.patch('/like/:id',verifyToken, ProductController.likeProduct);
 
-//delete wishlist
-router.get('/wishlist', ProductController.getWishlist);
 
 module.exports = router;

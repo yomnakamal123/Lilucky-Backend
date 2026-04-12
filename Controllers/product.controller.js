@@ -8,7 +8,7 @@ const userRoles=require('../user.roles');
 const fs = require('fs');
 const path = require('path');
 const upload = require('../Middlewares/uploadImage');
-
+const Wishlist = require('../Models/Wishlist.model');
 /* ===========================
    PUBLIC FUNCTIONS
 =========================== */
@@ -64,8 +64,6 @@ const createProduct = asyncwrapper(async (req, res, next) => {
   const files = req.files || [];
 
   const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-  // نحول files لـ object علشان نقدر نوصل بسهولة
   const filesMap = {};
 
   files.forEach((file) => {
@@ -108,7 +106,6 @@ const updateProduct = asyncwrapper(async (req, res, next) => {
     );
   }
 
-  // 1️⃣ Update normal fields
   const fieldsToUpdate = req.body;
 
   // Fix sizes if sent as string
@@ -191,21 +188,62 @@ const assignCategoryToProduct = asyncwrapper(async (req, res, next) => {
 =========================== */
 
 const likeProduct = asyncwrapper(async (req, res, next) => {
-  const product = await Product.findById(req.params.id);
-  product.like = !product.like;
-  await product.save();
 
-  res.json(product);
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const userId = req.user._id;
+  const { id: productId } = req.params;
+
+  const existing = await Wishlist.findOne({ userId, productId });
+
+  if (existing) {
+    await existing.deleteOne();
+    return res.json({ like: false });
+  }
+
+  await Wishlist.create({ userId, productId });
+
+  res.json({ like: true });
 });
+
+
 ///* ===========================
 //  OTHER FUNCTIONS
 //=========================== */
 // GET /api/products/wishlist
 const getWishlist = asyncwrapper(async (req, res, next) => {
-  const products = await Product.find({ like: true });
-  res.json(products);
+  const userId = req.user._id;
+  const wishlistItems = await Wishlist.find({ userId }).populate("productId");
+
+  const products = wishlistItems
+    .map(item => item.productId)
+    .filter(Boolean)
+    .map(product => ({
+      ...product.toObject(),
+      like: true, // مهم عشان CardItem يقرأها
+    }));
+
+  res.status(200).json({
+    success: true,
+    data: products,
+  });
 });
 
+
+const mergeWishlist = asyncwrapper(async (req, res) => {
+ const userId = req.user._id;
+  const { productIds } = req.body;
+
+  for (const productId of productIds) {
+    const exists = await Wishlist.findOne({ userId, productId });
+    if (!exists) {
+      await Wishlist.create({ userId, productId });
+    }
+  }
+  res.json({ message: "Wishlist merged" });
+});
 module.exports = {
   getAllProducts,
   getProductById,
@@ -214,6 +252,7 @@ module.exports = {
   deleteProduct,
   assignCategoryToProduct,
   likeProduct,
-  getWishlist
+  getWishlist,
+  mergeWishlist
 
 };

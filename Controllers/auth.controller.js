@@ -38,7 +38,6 @@ const register = asyncwrapper(async (req, res, next) => {
     role
   } = req.body;
 
-  // 1️⃣ Check if password and confirmPassword match
   if (password !== confirmPassword) {
     return next(appError.create('Passwords do not match', 400, httpStatusText.FAIL));
   }
@@ -132,14 +131,10 @@ const forgotPassword = asyncwrapper(async (req, res, next) => {
   const { email } = req.body;
   const user = await User.findOne({ email });
   if (!user) return next(appError.create('No user found with this email', 404));
-
-  // Generate OTP
   const otp = Math.floor(100000 + Math.random() * 900000);
   user.otp = otp;
   user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
   await user.save();
-
-  // Send email
   const subject = "Your OTP Code";
   const text = `Your OTP code is ${otp}. It expires in 10 minutes.`;
   const html = `<p>Your OTP code is <b>${otp}</b>. It expires in 10 minutes.</p>`;

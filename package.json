@@ -28,7 +28,7 @@
     "mongodb": "^7.0.0",
     "mongoose": "^9.1.1",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.12",
+    "nodemailer": "^7.0.13",
     "prisma": "^6.19.1",
     "slugify": "^1.6.6",
     "validator": "^13.15.26"
