@@ -3,21 +3,91 @@ const Product = require('../Models/Product.model');
 const asyncwrapper = require('../asyncwrapper');
 const appError = require('../appError');
 
+// const addToCart = asyncwrapper(async (req, res, next) => {
+//   const userId = req.user._id;
+//   const { productId, quantity } = req.body;
+
+//   if (!productId || !quantity) {
+//     return next(appError.create('Product and quantity are required', 400));
+//   }
+
+//   const product = await Product.findById(productId);
+//   if (!product) {
+//     return next(appError.create('Product not found', 404));
+//   }
+
+//   let cart = await Cart.findOne({ userId });
+
+//   if (!cart) {
+//     cart = await Cart.create({
+//       userId,
+//       items: []
+//     });
+//   }
+
+//   const itemIndex = cart.items.findIndex(
+//     item => item.productId.toString() === productId
+//   );
+
+//   if (itemIndex > -1) {
+//     cart.items[itemIndex].quantity += quantity;
+//   } else {
+//     cart.items.push({
+//       productId,
+//       price: product.price,
+//       quantity
+//     });
+//   }
+
+//   await cart.save(); 
+
+//   res.status(200).json({
+//     status: 'success',
+//     data: { cart }
+//   });
+// });
+
 const addToCart = asyncwrapper(async (req, res, next) => {
   const userId = req.user._id;
-  const { productId, quantity } = req.body;
+  let { productId, quantity } = req.body;
 
-  if (!productId || !quantity) {
-    return next(appError.create('Product and quantity are required', 400));
+  quantity = Number(quantity);
+
+  if (!productId || !quantity || quantity <= 0) {
+    return next(appError.create('Product and valid quantity are required', 400));
   }
 
   const product = await Product.findById(productId);
+
   if (!product) {
     return next(appError.create('Product not found', 404));
   }
 
+  // 🔥 CHECK STOCK
   let cart = await Cart.findOne({ userId });
 
+  let existingQty = 0;
+
+  if (cart) {
+    const item = cart.items.find(
+      i => i.productId.toString() === productId
+    );
+
+    if (item) {
+      existingQty = item.quantity;
+    }
+  }
+
+  const newTotalQty = existingQty + quantity;
+
+  if (newTotalQty > product.stock) {
+    return next(
+      appError.create(
+        `Not enough stock. Available: ${product.stock}`,
+        400
+      )
+    );
+  }
   if (!cart) {
     cart = await Cart.create({
       userId,
@@ -30,16 +100,16 @@ const addToCart = asyncwrapper(async (req, res, next) => {
   );
 
   if (itemIndex > -1) {
-    cart.items[itemIndex].quantity += quantity;
+    cart.items[itemIndex].quantity = newTotalQty;
   } else {
     cart.items.push({
       productId,
       price: product.price,
-      quantity
+      quantity: quantity
     });
   }
 
-  await cart.save(); 
+  await cart.save();
 
   res.status(200).json({
     status: 'success',

@@ -6,13 +6,14 @@ const categorycontroller=require('../Controllers/category.controller')
 ;
 
 
-
+router.get('/names',categorycontroller.getCategoryNames);
 // Public
-router.get('/',categorycontroller.getAllCategories);
+router.get('/get-all',categorycontroller.getAllCategories);
 
 // Admin
-router.post('/', verifyToken, isAdmin,categorycontroller.createCategory);
-router.patch('/:id', verifyToken, isAdmin, categorycontroller.updateCategory);
+router.post('/add-category', verifyToken, isAdmin,categorycontroller.createCategory);
+router.get('/get-category/:id', categorycontroller.getCategoryById);
+router.patch('/editCategory/:id', verifyToken, isAdmin, categorycontroller.updateCategory);
 router.delete('/:id', verifyToken, isAdmin, categorycontroller.deleteCategory);
 
 module.exports = router;

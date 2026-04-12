@@ -2,21 +2,23 @@ const mongoose = require('mongoose');
 
 const categorySchema = new mongoose.Schema(
   {
-    name: {
+    arName: {
       type: String,
       required: true,
       unique: true,
       trim: true
     },
-    slug: {
+    enName: {
       type: String,
       required: true,
       unique: true,
-      lowercase: true
+      trim: true
     },
-    description: {
-      type: String
-    },
+   categoryType: {
+    type: String,
+    enum: ["boys", "girls", "all"], 
+    required: true
+  },
     isActive: {
       type: Boolean,
       default: true

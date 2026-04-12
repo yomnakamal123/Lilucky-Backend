@@ -8,7 +8,7 @@ const userRoles=require('../user.roles');
 const fs = require('fs');
 const path = require('path');
 const upload = require('../Middlewares/uploadImage');
-
+const Wishlist = require('../Models/Wishlist.model');
 /* ===========================
    PUBLIC FUNCTIONS
 =========================== */
@@ -42,23 +42,61 @@ const getProductById = asyncwrapper(async (req, res, next) => {
    ADMIN FUNCTIONS
 =========================== */
 
+// const createProduct = asyncwrapper(async (req, res, next) => {
+//   const images = req.files
+//     ? req.files.map(file => `/uploads/products/${file.filename}`)
+//     : [];
+
+//   const product = await Product.create({
+//     ...req.body,
+//     images
+//   });
+
+//   res.status(201).json({
+//     status: httpStatusText.SUCCESS,
+//     data: product
+//   });
+// });
+
 const createProduct = asyncwrapper(async (req, res, next) => {
-  const images = req.files
-    ? req.files.map(file => `/uploads/products/${file.filename}`)
-    : [];
+  const variants = req.body.variants ? JSON.parse(req.body.variants) : [];
+
+  const files = req.files || [];
+
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+  // نحول files لـ object علشان نقدر نوصل بسهولة
+  const filesMap = {};
+
+  files.forEach((file) => {
+    if (!filesMap[file.fieldname]) {
+      filesMap[file.fieldname] = [];
+    }
+    filesMap[file.fieldname].push(file);
+  });
+
+  const formattedVariants = variants.map((variant, index) => {
+    const key = `variants[${index}][images]`;
+    const variantImages = filesMap[key] || [];
+    return {
+      color: variant.color,
+      sizes: variant.sizes || [],
+      images: variantImages.map(
+        f => `${baseUrl}/uploads/products/${f.filename}`
+      ),
+    };
+  });
 
   const product = await Product.create({
     ...req.body,
-    images
+    variants: formattedVariants,
   });
 
   res.status(201).json({
     status: httpStatusText.SUCCESS,
-    data: product
+    data: product,
   });
 });
-
-
 
 const updateProduct = asyncwrapper(async (req, res, next) => {
   const productId = req.params.id;
@@ -70,7 +108,6 @@ const updateProduct = asyncwrapper(async (req, res, next) => {
     );
   }
 
-  // 1️⃣ Update normal fields
   const fieldsToUpdate = req.body;
 
   // Fix sizes if sent as string
@@ -148,6 +185,67 @@ const assignCategoryToProduct = asyncwrapper(async (req, res, next) => {
   });
 });
 
+/* ===========================
+  PATCH /api/products/:id/like
+=========================== */
+
+const likeProduct = asyncwrapper(async (req, res, next) => {
+
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const userId = req.user._id;
+  const { id: productId } = req.params;
+
+  const existing = await Wishlist.findOne({ userId, productId });
+
+  if (existing) {
+    await existing.deleteOne();
+    return res.json({ like: false });
+  }
+
+  await Wishlist.create({ userId, productId });
+
+  res.json({ like: true });
+});
+
+
+///* ===========================
+//  OTHER FUNCTIONS
+//=========================== */
+// GET /api/products/wishlist
+const getWishlist = asyncwrapper(async (req, res, next) => {
+  const userId = req.user._id;
+  const wishlistItems = await Wishlist.find({ userId }).populate("productId");
+
+  const products = wishlistItems
+    .map(item => item.productId)
+    .filter(Boolean)
+    .map(product => ({
+      ...product.toObject(),
+      like: true, // مهم عشان CardItem يقرأها
+    }));
+
+  res.status(200).json({
+    success: true,
+    data: products,
+  });
+});
+
+
+const mergeWishlist = asyncwrapper(async (req, res) => {
+ const userId = req.user._id;
+  const { productIds } = req.body;
+
+  for (const productId of productIds) {
+    const exists = await Wishlist.findOne({ userId, productId });
+    if (!exists) {
+      await Wishlist.create({ userId, productId });
+    }
+  }
+  res.json({ message: "Wishlist merged" });
+});
 module.exports = {
   getAllProducts,
   getProductById,
@@ -155,4 +253,8 @@ module.exports = {
   updateProduct,
   deleteProduct,
   assignCategoryToProduct,
+  likeProduct,
+  getWishlist,
+  mergeWishlist
+
 };
