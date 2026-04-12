@@ -10,29 +10,6 @@ const bcrypt=require('bcryptjs');
 /* ===========================
    CLIENT FUNCTIONS
 =========================== */
-
-
-//User Profile
-const getMyProfile = asyncwrapper(async (req, res, next) => {
-  const user = await User.findById(req.user.id).select('-password -__v');
-
-// User Profile
-// const getMyProfile = asyncwrapper(async (req, res, next) => {
-//   const user = await User.findById(req.user.id).select('-password -__v');
-
-//   if (!user) {
-//     return next(
-//       AppError.create('User not found', 404, httpStatusText.FAIL)
-//     );
-//   }
-
-//   res.status(200).json({
-//     status: httpStatusText.SUCCESS,
-//     data: user,
-//   });
-// });
-
-
 const getMyProfile = async (req, res) => {
   try {
     console.log("USER:", req.user);
