@@ -112,8 +112,21 @@ const getMyOrders = asyncwrapper(async (req, res, next) => {
 /* ===========================
    ADMIN FUNCTIONS
 =========================== */
+// const getAllOrders = asyncwrapper(async (req, res, next) => {
+//   const orders = await Order.find().sort({ createdAt: -1 });
+
+//   res.status(200).json({
+//     status: httpStatusText.SUCCESS,
+//     results: orders.length,
+//     data: { orders }
+//   });
+// });
+
+
 const getAllOrders = asyncwrapper(async (req, res, next) => {
-  const orders = await Order.find().sort({ createdAt: -1 });
+  const orders = await Order.find()
+    .populate("userId", "firstName lastName email phoneNumber") 
+    .sort({ createdAt: -1 });
 
   res.status(200).json({
     status: httpStatusText.SUCCESS,
@@ -121,7 +134,6 @@ const getAllOrders = asyncwrapper(async (req, res, next) => {
     data: { orders }
   });
 });
-
 
 const updateOrderStatus = asyncwrapper(async (req, res, next) => {
   const { id } = req.params;

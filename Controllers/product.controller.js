@@ -23,8 +23,10 @@ const getAllProducts = asyncwrapper(async (req, res, next) => {
   });
 });
 
+
 const getProductById = asyncwrapper(async (req, res, next) => {
-  const product = await Product.findById(req.params.id);
+  const product = await Product.findById(req.params.id)
+    .populate('category'); // 🔥 مهم جداً
 
   if (!product || !product.isActive) {
     return next(
@@ -58,44 +60,97 @@ const getProductById = asyncwrapper(async (req, res, next) => {
 //   });
 // });
 
+// const createProduct = asyncwrapper(async (req, res, next) => {
+//   const variants = req.body.variants ? JSON.parse(req.body.variants) : [];
+
+//   const files = req.files || [];
+
+//   const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+//   const filesMap = {};
+
+//   files.forEach((file) => {
+//     if (!filesMap[file.fieldname]) {
+//       filesMap[file.fieldname] = [];
+//     }
+//     filesMap[file.fieldname].push(file);
+//   });
+
+//   const formattedVariants = variants.map((variant, index) => {
+//     const key = `variants[${index}][images]`;
+//     const variantImages = filesMap[key] || [];
+//     return {
+//       color: variant.color,
+//       sizes: variant.sizes || [],
+//       images: variantImages.map(
+//         f => `${baseUrl}/uploads/products/${f.filename}`
+//       ),
+//     };
+//   });
+
+//   const product = await Product.create({
+//     ...req.body,
+//     variants: formattedVariants,
+//   });
+
+//   res.status(201).json({
+//     status: httpStatusText.SUCCESS,
+//     data: product,
+//   });
+// });
+
+
 const createProduct = asyncwrapper(async (req, res, next) => {
-  const variants = req.body.variants ? JSON.parse(req.body.variants) : [];
+  try {
+    let variants = [];
 
-  const files = req.files || [];
-
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
-
-  const filesMap = {};
-
-  files.forEach((file) => {
-    if (!filesMap[file.fieldname]) {
-      filesMap[file.fieldname] = [];
+    if (req.body.variants) {
+      variants =
+        typeof req.body.variants === "string"
+          ? JSON.parse(req.body.variants)
+          : req.body.variants;
     }
-    filesMap[file.fieldname].push(file);
-  });
 
-  const formattedVariants = variants.map((variant, index) => {
-    const key = `variants[${index}][images]`;
-    const variantImages = filesMap[key] || [];
-    return {
-      color: variant.color,
-      sizes: variant.sizes || [],
-      images: variantImages.map(
-        f => `${baseUrl}/uploads/products/${f.filename}`
-      ),
-    };
-  });
+    const files = req.files || [];
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
 
-  const product = await Product.create({
-    ...req.body,
-    variants: formattedVariants,
-  });
+    const filesMap = {};
 
-  res.status(201).json({
-    status: httpStatusText.SUCCESS,
-    data: product,
-  });
+    files.forEach((file) => {
+      const key = file.fieldname;
+      filesMap[key] = filesMap[key] || [];
+      filesMap[key].push(file);
+    });
+
+    const formattedVariants = (variants || []).map((v, i) => {
+      const key = `variants[${i}][images]`;
+
+      return {
+        color: v.color,
+        sizes: v.sizes || [],
+        images: (filesMap[key] || []).map(
+          (f) => `${baseUrl}/uploads/products/${f.filename}`
+        ),
+      };
+    });
+
+    const product = await Product.create({
+      ...req.body,
+      variants: formattedVariants,
+    });
+
+    res.status(201).json({
+      status: "success",
+      data: product,
+    });
+  } catch (err) {
+    next(err);
+  }
 });
+
+///* ===========================
+//  PATCH /api/products/:id
+//=========================== */
 
 const updateProduct = asyncwrapper(async (req, res, next) => {
   const productId = req.params.id;
@@ -109,16 +164,12 @@ const updateProduct = asyncwrapper(async (req, res, next) => {
 
   const fieldsToUpdate = req.body;
 
-  // Fix sizes if sent as string
   if (typeof fieldsToUpdate.sizes === 'string') {
     fieldsToUpdate.sizes = fieldsToUpdate.sizes.split(',');
   }
-
   if (typeof fieldsToUpdate.colors === 'string') {
     fieldsToUpdate.colors = fieldsToUpdate.colors.split(',');
   }
-
-  // 2️⃣ If new images uploaded → delete old images
   if (req.files && req.files.length > 0) {
     product.images.forEach((imgPath) => {
       const fullPath = path.join(__dirname, '..', imgPath);
@@ -126,8 +177,6 @@ const updateProduct = asyncwrapper(async (req, res, next) => {
         fs.unlinkSync(fullPath);
       }
     });
-
-    // save new images paths
     fieldsToUpdate.images = req.files.map(
       (file) => `/uploads/products/${file.filename}`
     );
@@ -144,6 +193,8 @@ const updateProduct = asyncwrapper(async (req, res, next) => {
     data: updatedProduct,
   });
 });
+
+
 
 const deleteProduct = asyncwrapper(async (req, res, next) => {
   const product = await Product.findByIdAndDelete(req.params.id);
