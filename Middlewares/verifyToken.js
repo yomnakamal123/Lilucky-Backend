@@ -15,6 +15,7 @@ const verifyToken = (req, res, next) => {
 
     // map id to _id for Mongoose
     req.user = {
+      id: decoded.id, // Mongoose expects _id
       _id: decoded.id, // Mongoose expects _id
       email: decoded.email,
       role: decoded.role

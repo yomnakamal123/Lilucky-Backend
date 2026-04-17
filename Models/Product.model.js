@@ -22,7 +22,7 @@ const productSchema = new mongoose.Schema(
     variants: [
       {
         color: { type: String, required: true },
-        sizes: [{ type: String, enum: ['1Y', '2Y', '3Y', '4Y', '5Y'] }],
+        sizes: [{ type: String, enum: ['1Y', '2Y', '3Y', '4Y', '5Y', '6Y', '7Y', '8Y'] }],
         images: [String]
       }
     ],

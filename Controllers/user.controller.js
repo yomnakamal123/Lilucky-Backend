@@ -13,16 +13,13 @@ const bcrypt=require('bcryptjs');
 const getMyProfile = async (req, res) => {
   try {
     console.log("USER:", req.user);
-
     const user = await User.findById(req.user.id).select('-password -__v');
-
     if (!user) {
       return res.status(404).json({
         status: "fail",
         message: "User not found"
       });
     }
-
     res.status(200).json({
       status: "success",
       data: user,
@@ -104,10 +101,45 @@ const getUserById = asyncwrapper(async (req, res, next) => {
   });
 });
 
+
+const updateUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating user' });
+  }
+};
+
+const deleteUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting user' });
+  }
+};
+
 module.exports = {
   getMyProfile,
   updateMyProfile,
   changePassword,
   getAllUsers,
   getUserById,
+  updateUser,
+  deleteUser
 };

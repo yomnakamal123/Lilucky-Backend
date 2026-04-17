@@ -5,7 +5,7 @@ const UserController = require('../Controllers/user.controller');
 const verifyToken = require('../Middlewares/verifyToken');
 const isAdmin = require('../Middlewares/isAdmin');
 
-router.get('/profile', verifyToken, UserController.getMyProfile);
+router.get('/account', verifyToken, UserController.getMyProfile);
 router.patch('/update', verifyToken, UserController.updateMyProfile);
 router.patch('/change_password', verifyToken, UserController.changePassword);
 
@@ -18,11 +18,14 @@ router.get(
 );
 
 router.get(
-  '/users/:id',
+  '/:id',
   verifyToken,
   isAdmin,
   UserController.getUserById
 );
 
+router.patch('/users/:id', verifyToken, isAdmin, UserController.updateUser);
+
+router.delete('/users/:id', verifyToken, isAdmin, UserController.deleteUser);
 
 module.exports = router;
