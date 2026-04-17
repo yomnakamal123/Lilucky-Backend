@@ -102,38 +102,50 @@ const getProductById = asyncwrapper(async (req, res, next) => {
 
 const createProduct = asyncwrapper(async (req, res, next) => {
   try {
+    console.log("BODY:", req.body);
+    console.log("FILES:", req.files);
+
     let variants = [];
 
     if (req.body.variants) {
-      variants =
-        typeof req.body.variants === "string"
-          ? JSON.parse(req.body.variants)
-          : req.body.variants;
+      try {
+        variants =
+          typeof req.body.variants === "string"
+            ? JSON.parse(req.body.variants)
+            : req.body.variants;
+      } catch (err) {
+        return res.status(400).json({
+          message: "Invalid variants format (JSON parse failed)",
+        });
+      }
     }
-
+    if (!Array.isArray(variants)) {
+      return res.status(400).json({
+        message: "Variants must be an array",
+      });
+    }
     const files = req.files || [];
     const baseUrl = `${req.protocol}://${req.get("host")}`;
-
     const filesMap = {};
 
     files.forEach((file) => {
       const key = file.fieldname;
-      filesMap[key] = filesMap[key] || [];
+      if (!filesMap[key]) {
+        filesMap[key] = [];
+      }
       filesMap[key].push(file);
     });
 
-    const formattedVariants = (variants || []).map((v, i) => {
+    const formattedVariants = variants.map((v, i) => {
       const key = `variants[${i}][images]`;
-
       return {
-        color: v.color,
-        sizes: v.sizes || [],
+        color: v?.color || "",
+        sizes: Array.isArray(v?.sizes) ? v.sizes : [],
         images: (filesMap[key] || []).map(
           (f) => `${baseUrl}/uploads/products/${f.filename}`
         ),
       };
     });
-
     const product = await Product.create({
       ...req.body,
       variants: formattedVariants,
@@ -143,8 +155,14 @@ const createProduct = asyncwrapper(async (req, res, next) => {
       status: "success",
       data: product,
     });
+
   } catch (err) {
-    next(err);
+    console.error("CREATE PRODUCT ERROR:", err);
+
+    res.status(500).json({
+      status: "error",
+      message: err.message || "Internal Server Error",
+    });
   }
 });
 
