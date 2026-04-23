@@ -16,7 +16,8 @@ const createOrder = asyncwrapper(async (req, res, next) => {
 
   if (
     !deliveryAddress?.city ||
-    !deliveryAddress?.location ||
+    !deliveryAddress?.governorate ||
+    !deliveryAddress?.address ||
     !deliveryAddress?.phoneNumber
   ) {
     return next(appError.create('Delivery address is required', 400));

@@ -1,3 +1,4 @@
+const { add } = require('lodash');
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
@@ -46,8 +47,9 @@ const orderSchema = new mongoose.Schema({
   },
 
   deliveryAddress: {
+    governorate: { type: String, required: true },
     city: { type: String, required: true },
-    location: { type: String, required: true },
+    address: { type: String, required: true },
     phoneNumber: { type: String, required: true }
   }
 

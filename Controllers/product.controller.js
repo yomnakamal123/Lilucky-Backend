@@ -9,6 +9,8 @@ const fs = require('fs');
 const path = require('path');
 const upload = require('../Middlewares/uploadImage');
 const Wishlist = require('../Models/Wishlist.model');
+const cloudinary = require("../config/cloudinary");
+const uploadToCloudinary = require("../utils/uploadToCloudinary");
 /* ===========================
    PUBLIC FUNCTIONS
 =========================== */
@@ -99,59 +101,152 @@ const getProductById = asyncwrapper(async (req, res, next) => {
 //   });
 // });
 
+// const createProduct = asyncwrapper(async (req, res) => {
+//   try {
+//     /* ================= SAFE VARIANTS PARSING ================= */
+//     let variants = [];
 
-const createProduct = asyncwrapper(async (req, res, next) => {
+//     if (req.body.variants) {
+//       try {
+//         variants =
+//           typeof req.body.variants === "string"
+//             ? JSON.parse(req.body.variants)
+//             : req.body.variants;
+//       } catch (err) {
+//         return res.status(400).json({
+//           message: "Invalid variants JSON format",
+//         });
+//       }
+//     }
+
+//     if (!Array.isArray(variants)) {
+//       return res.status(400).json({
+//         message: "Variants must be an array",
+//       });
+//     }
+
+//     /* ================= FILES HANDLING ================= */
+//     const files = req.files ?? [];
+//     const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+//     const filesMap = {};
+
+//     files.forEach((file) => {
+//       const key = file.fieldname;
+
+//       if (!filesMap[key]) {
+//         filesMap[key] = [];
+//       }
+
+//       filesMap[key].push(file);
+//     });
+
+//     /* ================= FORMAT VARIANTS ================= */
+//     const formattedVariants = variants.map((v, i) => {
+//       const key = `variants[${i}][images]`;
+
+//       return {
+//         color: v?.color || "",
+//         sizes: Array.isArray(v?.sizes) ? v.sizes : [],
+//         images: (filesMap[key] || []).map(
+//           (f) => `${baseUrl}/uploads/products/${f.filename}`
+//         ),
+//       };
+//     });
+
+//     /* ================= CREATE PRODUCT ================= */
+//     const product = await Product.create({
+//       ...req.body,
+
+//       // 🔥 important type safety
+//       main_price: Number(req.body.main_price || 0),
+//       price: Number(req.body.price || 0),
+//       stock: Number(req.body.stock || 0),
+
+//       variants: formattedVariants,
+//     });
+
+//     return res.status(201).json({
+//       status: "success",
+//       data: product,
+//     });
+//   } catch (err) {
+//     console.error("CREATE PRODUCT ERROR:", err);
+
+//     return res.status(500).json({
+//       status: "error",
+//       message: err.message || "Internal Server Error",
+//     });
+//   }
+// });
+
+
+
+const createProduct = asyncwrapper(async (req, res) => {
   try {
-    console.log("BODY:", req.body);
-    console.log("FILES:", req.files);
-
     let variants = [];
 
     if (req.body.variants) {
-      try {
-        variants =
-          typeof req.body.variants === "string"
-            ? JSON.parse(req.body.variants)
-            : req.body.variants;
-      } catch (err) {
-        return res.status(400).json({
-          message: "Invalid variants format (JSON parse failed)",
-        });
-      }
+      variants =
+        typeof req.body.variants === "string"
+          ? JSON.parse(req.body.variants)
+          : req.body.variants;
     }
+
     if (!Array.isArray(variants)) {
       return res.status(400).json({
         message: "Variants must be an array",
       });
     }
-    const files = req.files || [];
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    const files = req.files ?? [];
+
+    // 🧠 group files by fieldname
     const filesMap = {};
 
-    files.forEach((file) => {
-      const key = file.fieldname;
-      if (!filesMap[key]) {
-        filesMap[key] = [];
+    for (const file of files) {
+      if (!filesMap[file.fieldname]) {
+        filesMap[file.fieldname] = [];
       }
-      filesMap[key].push(file);
-    });
+      filesMap[file.fieldname].push(file);
+    }
 
-    const formattedVariants = variants.map((v, i) => {
-      const key = `variants[${i}][images]`;
-      return {
-        color: v?.color || "",
-        sizes: Array.isArray(v?.sizes) ? v.sizes : [],
-        images: (filesMap[key] || []).map(
-          (f) => `${baseUrl}/uploads/products/${f.filename}`
-        ),
-      };
-    });
+    /* ================= UPLOAD ALL IMAGES TO CLOUDINARY ================= */
+
+    const formattedVariants = await Promise.all(
+      variants.map(async (v, i) => {
+        const key = `variants[${i}][images]`;
+
+        const imagesFiles = filesMap[key] || [];
+
+        const uploadedImages = await Promise.all(
+          imagesFiles.map(async (file) => {
+            const result = await uploadToCloudinary(file.buffer);
+            return result.secure_url;
+          })
+        );
+
+        return {
+          color: v?.color || "",
+          sizes: Array.isArray(v?.sizes) ? v.sizes : [],
+          images: uploadedImages,
+        };
+      })
+    );
+
+    /* ================= CREATE PRODUCT ================= */
+
     const product = await Product.create({
       ...req.body,
+
+      main_price: Number(req.body.main_price || 0),
+      price: Number(req.body.price || 0),
+      stock: Number(req.body.stock || 0),
+
       variants: formattedVariants,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       status: "success",
       data: product,
     });
@@ -159,12 +254,13 @@ const createProduct = asyncwrapper(async (req, res, next) => {
   } catch (err) {
     console.error("CREATE PRODUCT ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       status: "error",
-      message: err.message || "Internal Server Error",
+      message: err.message,
     });
   }
 });
+
 
 ///* ===========================
 //  PATCH /api/products/:id

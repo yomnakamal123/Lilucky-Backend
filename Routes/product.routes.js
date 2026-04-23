@@ -9,7 +9,7 @@ const upload = require('../Middlewares/uploadImage');
 const isAdmin = require('../Middlewares/isAdmin');
 
 
-router.get('/get-all' , ProductController.getAllProducts);
+// router.get('/get-all' , ProductController.getAllProducts);
 // Public
 router.get('/get-all-products', ProductController.getAllProducts);
 // Admin
@@ -25,6 +25,7 @@ router.post(
   upload.any(), 
   ProductController.createProduct
 );
+
 
 //delete wishlist
 router.get('/wishlist', verifyToken, ProductController.getWishlist);

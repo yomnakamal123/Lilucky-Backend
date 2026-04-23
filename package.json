@@ -15,6 +15,7 @@
   "dependencies": {
     "@prisma/client": "^6.19.1",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^1.41.3",
     "commander": "^14.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -27,10 +28,12 @@
     "lodash": "^4.17.21",
     "mongodb": "^7.0.0",
     "mongoose": "^9.1.1",
-    "multer": "^2.0.2",
+    "multer": "^2.1.1",
+    "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^7.0.13",
     "prisma": "^6.19.1",
     "slugify": "^1.6.6",
+    "twilio": "^5.13.1",
     "validator": "^13.15.26"
   },
   "devDependencies": {
