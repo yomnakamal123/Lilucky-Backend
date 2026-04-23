@@ -94,7 +94,6 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');
 const cookieParser = require('cookie-parser');
-
 const httpStatusText = require('./httpStatusText');
 const i18n = require('./i18n.config');
 
