@@ -22,7 +22,7 @@ router.post(
   '/add-product',
   verifyToken,
   allowedTo(userRoles.ADMIN),
-  upload.any(), 
+  upload.any(), // ✔️ تمام
   ProductController.createProduct
 );
 
