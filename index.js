@@ -125,7 +125,8 @@ mongoose.connect(url)
 
 // CORS
 app.use(cors({
-  origin: 'https://lilucky-front.vercel.app/customer',
+  origin:[ 'https://lilucky-front.vercel.app/customer',
+      "https://lilucky-front-2xh4yuxyn-alaakamals-projects.vercel.app" ],
   credentials: true
 }));
 
