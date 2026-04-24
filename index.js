@@ -125,7 +125,7 @@ mongoose.connect(url)
 
 // CORS
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: 'https://lilucky-front.vercel.app/customer',
   credentials: true
 }));
 
