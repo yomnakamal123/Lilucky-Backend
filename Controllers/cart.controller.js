@@ -104,7 +104,7 @@ const addToCart = asyncwrapper(async (req, res, next) => {
   } else {
     cart.items.push({
       productId,
-      price: product.price,
+      priceAtAddToCart: product.price,
       quantity: quantity
     });
   }

@@ -106,7 +106,8 @@ const orderrouter = require('./Routes/order.routes');
 const cartrouter = require('./Routes/cart.routes');
 const categoryrouter = require('./Routes/category.routes');
 const dashboardRoutes = require("./Routes/dashboard.routes");
-
+const settingsroutes = require("./Routes/settings.route");
+const shippingRoutes = require("./Routes/shipping.route");
 
 const app = express();
 
@@ -126,6 +127,7 @@ mongoose.connect(url)
 // CORS
 app.use(cors({
   origin:[
+  "http://localhost:3000",
   "https://lilucky-front.vercel.app",
   "https://lilucky-front-2xh4yuxyn-alaakamals-projects.vercel.app",
   "https://lilucky-front-git-main-alaakamals-projects.vercel.app"],
@@ -156,7 +158,8 @@ app.use('/api/order', orderrouter);
 app.use('/api/cart', cartrouter);
 app.use('/api/category', categoryrouter);
 app.use("/api/dashboard", dashboardRoutes);
-
+app.use("/api/shipping", shippingRoutes);
+app.use("/api/settings", settingsroutes);
 // test route
 app.get('/test', (req, res) => {
   res.send('Server is working');

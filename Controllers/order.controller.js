@@ -5,54 +5,67 @@ const Cart = require('../Models/Cart.model');
 const asyncwrapper = require('../asyncwrapper');
 const appError = require('../appError');
 const httpStatusText = require('../httpStatusText');
-
+const orderService = require('../Services/order.service');
+const Shipping = require('../Models/Shipping.model');
 /* ===========================
    CLIENT FUNCTIONS
 =========================== */
 
 const createOrder = asyncwrapper(async (req, res, next) => {
-  const userId = req.user._id;
-  const { deliveryAddress, paymentMethod } = req.body;
-
-  if (
-    !deliveryAddress?.city ||
-    !deliveryAddress?.governorate ||
-    !deliveryAddress?.address ||
-    !deliveryAddress?.phoneNumber
-  ) {
-    return next(appError.create('Delivery address is required', 400));
-  }
 
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
+
+    const userId = req.user._id;
+    const body = req.body;
+
+    /* ================= GET CART ================= */
+
     const cart = await Cart.findOne({ userId }).session(session);
 
     if (!cart || cart.items.length === 0) {
-      throw appError.create('Cart is empty', 400);
+      throw new Error("Cart is empty");
     }
 
-    let totalAmount = 0;
+    /* ================= NORMALIZE ADDRESS ================= */
+
+    const address = body.deliveryAddress || body.shippingAddress;
+
+    if (!address) {
+      throw new Error("Delivery address is required");
+    }
+
+    const governorate = address.governorate?.toLowerCase().trim();
+    const city = address.city;
+    const street = address.street;
+
+    /* ================= CALCULATE ORDER ITEMS ================= */
+
+    let subtotal = 0;
     const orderItems = [];
 
     for (const item of cart.items) {
+
       const product = await Product.findById(item.productId).session(session);
 
       if (!product) {
-        throw appError.create('Product not found', 404);
+        throw new Error("Product not found");
       }
 
       if (product.stock < item.quantity) {
-        throw appError.create(`Not enough stock for ${product.name}`, 400);
+        throw new Error(`Not enough stock for ${product.name}`);
       }
 
-      totalAmount += product.price * item.quantity;
+      const price = product.price;
+
+      subtotal += price * item.quantity;
 
       orderItems.push({
         productId: product._id,
         name: product.name,
-        price: product.price,
+        price,
         quantity: item.quantity
       });
 
@@ -60,39 +73,62 @@ const createOrder = asyncwrapper(async (req, res, next) => {
       await product.save({ session });
     }
 
-    const [order] = await Order.create(
-      [
-        {
-          userId,
-          items: orderItems,
-          totalAmount,
-          paymentMethod,
-          deliveryAddress,
-          orderStatus: 'pending'
-        }
-      ],
-      { session }
-    );
+    /* ================= SHIPPING ================= */
 
-    // ✅ CLEAR CART
-    await Cart.findOneAndUpdate(
+    const shipping = await Shipping.findOne({
+      governorate: governorate
+    }).session(session);
+
+    if (!shipping) {
+      throw new Error("Shipping not found for this governorate");
+    }
+
+    const deliveryPrice = shipping.price;
+
+    /* ================= TOTAL ================= */
+
+    const totalAmount = subtotal + deliveryPrice;
+
+    /* ================= CREATE ORDER ================= */
+
+    const order = await Order.create([{
+      userId,
+      items: orderItems,
+      subtotal,
+      deliveryPrice,
+      totalAmount,
+      paymentMethod: body.paymentMethod || "cash",
+
+      deliveryAddress: {
+        governorate,
+        city,
+        address: street
+      }
+
+    }], { session });
+
+    /* ================= CLEAR CART ================= */
+
+    await Cart.updateOne(
       { userId },
-      { items: [] },
+      { $set: { items: [] } },
       { session }
     );
 
     await session.commitTransaction();
     session.endSession();
 
-    res.status(201).json({
-      status: httpStatusText.SUCCESS,
-      data: { order }
+    return res.status(201).json({
+      status: "success",
+      data: order[0]
     });
 
-  } catch (err) {
+  } catch (error) {
+
     await session.abortTransaction();
     session.endSession();
-    return next(err);
+
+    return next(error);
   }
 });
 
@@ -228,3 +264,4 @@ module.exports = {
   updateOrderStatus,
   getMostSellingProduct
 };
+

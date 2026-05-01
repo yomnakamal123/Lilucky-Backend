@@ -34,18 +34,11 @@ const userSchema = new mongoose.Schema(
       required: true,
       match: [/^\+?\d{10,15}$/, 'Invalid phone number']
     },
-    city: {
-      type: String,
-      required: true
-    },
-    governorate: {
-      type: String,
-      required: true
-    },
-    address: {
-      type: String,
-      required: true
-    },
+  address: {
+  governorate: String,
+  city: String,
+  street: String
+},
     role: {
       type: String,
       enum: Object.values(userRoles),

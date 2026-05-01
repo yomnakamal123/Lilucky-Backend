@@ -7,42 +7,156 @@ const userRoles=require('../user.roles');
 const bcrypt=require('bcryptjs');
 
 
+// /* ===========================
+//    CLIENT FUNCTIONS
+// =========================== */
+// const getMyProfile = async (req, res) => {
+//   try {
+//     console.log("USER:", req.user);
+//     const user = await User.findById(req.user.id).select('-password -__v');
+//     if (!user) {
+//       return res.status(404).json({
+//         status: "fail",
+//         message: "User not found"
+//       });
+//     }
+//     res.status(200).json({
+//       status: "success",
+//       data: user,
+//     });
+
+//   } catch (err) {
+//     console.error("ERROR:", err);
+//     res.status(500).json({
+//       status: "error",
+//       message: err.message
+//     });
+//   }
+// };
+
+// //Update User Profile
+// const updateMyProfile = asyncwrapper(async (req, res, next) => {
+//   const { firstName, lastName, phoneNumber, city, location } = req.body;
+
+//   const user = await User.findByIdAndUpdate(
+//     req.user.id,
+//     { firstName, lastName, phoneNumber, city, location },
+//     { new: true, runValidators: true }
+//   ).select('-password');
+
+//   res.status(200).json({
+//     status: httpStatusText.SUCCESS,
+//     data: user,
+//   });
+// });
+
+// //Change Password
+// const changePassword = asyncwrapper(async (req, res, next) => {
+//   const { currentPassword, newPassword } = req.body;
+
+//   const user = await User.findById(req.user.id).select('+password');
+
+//   if (!user || !(await user.comparePassword(currentPassword))) {
+//     return next(
+//       appError.create('Current password is incorrect', 400, httpStatusText.FAIL)
+//     );
+//   }
+
+//   user.password = newPassword;
+//   await user.save();
+
+//   res.status(200).json({
+//     status: httpStatusText.SUCCESS,
+//     message: 'Password updated successfully',
+//   });
+// });
+
+// /* ===========================
+//    ADMIN FUNCTIONS
+// =========================== */
+
+
+// const getAllUsers = asyncwrapper(async (req, res, next) => {
+//   const users = await User.find({}, { password: false, __v: false });
+
+//   res.status(200).json({
+//     status: httpStatusText.SUCCESS,
+//     results: users.length,
+//     data: users
+//   });
+// });
+
+// const getUserById = asyncwrapper(async (req, res, next) => {
+//   const user = await User.findById(req.params.id).select('-password');
+
+//   if (!user) {
+//     return next(
+//       appError.create('User not found', 404, httpStatusText.FAIL)
+//     );
+//   }
+
+//   res.status(200).json({
+//     status: httpStatusText.SUCCESS,
+//     data: user,
+//   });
+// });
+
+
+// const updateUser = async (req, res) => {
+//   try {
+//     const user = await User.findByIdAndUpdate(
+//       req.params.id,
+//       req.body,
+//       { new: true }
+//     );
+
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     res.json(user);
+//   } catch (err) {
+//     res.status(500).json({ message: 'Error updating user' });
+//   }
+// };
+
+// const deleteUser = async (req, res) => {
+//   try {
+//     const user = await User.findByIdAndDelete(req.params.id);
+
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     res.json({ message: 'User deleted successfully' });
+//   } catch (err) {
+//     res.status(500).json({ message: 'Error deleting user' });
+//   }
+// };
+
+// module.exports = {
+//   getMyProfile,
+//   updateMyProfile,
+//   changePassword,
+//   getAllUsers,
+//   getUserById,
+//   updateUser,
+//   deleteUser
+// };
+
 /* ===========================
    CLIENT FUNCTIONS
 =========================== */
-const getMyProfile = async (req, res) => {
-  try {
-    console.log("USER:", req.user);
-    const user = await User.findById(req.user.id).select('-password -__v');
-    if (!user) {
-      return res.status(404).json({
-        status: "fail",
-        message: "User not found"
-      });
-    }
-    res.status(200).json({
-      status: "success",
-      data: user,
-    });
 
-  } catch (err) {
-    console.error("ERROR:", err);
-    res.status(500).json({
-      status: "error",
-      message: err.message
-    });
+// 👤 Get My Profile
+const getMyProfile = asyncwrapper(async (req, res, next) => {
+  const userId = req.user._id; // 🔥 توحيد
+
+  const user = await User.findById(userId).select('-password -__v');
+
+  if (!user) {
+    return next(appError.create('User not found', 404));
   }
-};
-
-//Update User Profile
-const updateMyProfile = asyncwrapper(async (req, res, next) => {
-  const { firstName, lastName, phoneNumber, city, location } = req.body;
-
-  const user = await User.findByIdAndUpdate(
-    req.user.id,
-    { firstName, lastName, phoneNumber, city, location },
-    { new: true, runValidators: true }
-  ).select('-password');
 
   res.status(200).json({
     status: httpStatusText.SUCCESS,
@@ -50,16 +164,52 @@ const updateMyProfile = asyncwrapper(async (req, res, next) => {
   });
 });
 
-//Change Password
+// ✏️ Update My Profile
+const updateMyProfile = asyncwrapper(async (req, res, next) => {
+  const userId = req.user._id;
+
+  const { firstName, lastName, phoneNumber, address } = req.body;
+
+  const user = await User.findById(userId);
+
+  if (!user) {
+    return next(appError.create("User not found", 404));
+  }
+
+  // update basic fields
+  if (firstName) user.firstName = firstName;
+  if (lastName) user.lastName = lastName;
+  if (phoneNumber) user.phoneNumber = phoneNumber;
+
+  // update address (nested object)
+  if (address) {
+    user.address = {
+      city: address.city || user.address?.city,
+      governorate: address.governorate || user.address?.governorate,
+      street: address.street || user.address?.street,
+    };
+  }
+
+  await user.save();
+
+  res.status(200).json({
+    status: "success",
+    data: user,
+  });
+});
 const changePassword = asyncwrapper(async (req, res, next) => {
   const { currentPassword, newPassword } = req.body;
 
-  const user = await User.findById(req.user.id).select('+password');
+  const user = await User.findById(req.user._id).select('+password');
 
-  if (!user || !(await user.comparePassword(currentPassword))) {
-    return next(
-      appError.create('Current password is incorrect', 400, httpStatusText.FAIL)
-    );
+  if (!user) {
+    return next(appError.create('User not found', 404));
+  }
+
+  const isMatch = await user.comparePassword(currentPassword);
+
+  if (!isMatch) {
+    return next(appError.create('Current password is incorrect', 400));
   }
 
   user.password = newPassword;
@@ -75,24 +225,23 @@ const changePassword = asyncwrapper(async (req, res, next) => {
    ADMIN FUNCTIONS
 =========================== */
 
-
+// 👥 Get All Users
 const getAllUsers = asyncwrapper(async (req, res, next) => {
-  const users = await User.find({}, { password: false, __v: false });
+  const users = await User.find().select('-password -__v');
 
   res.status(200).json({
     status: httpStatusText.SUCCESS,
     results: users.length,
-    data: users
+    data: users,
   });
 });
 
+// 👤 Get User By ID
 const getUserById = asyncwrapper(async (req, res, next) => {
-  const user = await User.findById(req.params.id).select('-password');
+  const user = await User.findById(req.params.id).select('-password -__v');
 
   if (!user) {
-    return next(
-      appError.create('User not found', 404, httpStatusText.FAIL)
-    );
+    return next(appError.create('User not found', 404));
   }
 
   res.status(200).json({
@@ -101,38 +250,46 @@ const getUserById = asyncwrapper(async (req, res, next) => {
   });
 });
 
+// ✏️ Update User (ADMIN)
+const updateUser = asyncwrapper(async (req, res, next) => {
+  const userId = req.params.id;
 
-const updateUser = async (req, res) => {
-  try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+  // منع تعديل password من هنا
+  delete req.body.password;
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+  const user = await User.findByIdAndUpdate(
+    userId,
+    req.body,
+    { new: true, runValidators: true }
+  ).select('-password');
 
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: 'Error updating user' });
+  if (!user) {
+    return next(appError.create('User not found', 404));
   }
-};
 
-const deleteUser = async (req, res) => {
-  try {
-    const user = await User.findByIdAndDelete(req.params.id);
+  res.status(200).json({
+    status: httpStatusText.SUCCESS,
+    data: user,
+  });
+});
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+// 🗑️ Delete User
+const deleteUser = asyncwrapper(async (req, res, next) => {
+  const user = await User.findByIdAndDelete(req.params.id);
 
-    res.json({ message: 'User deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ message: 'Error deleting user' });
+  if (!user) {
+    return next(appError.create('User not found', 404));
   }
-};
+
+  res.status(200).json({
+    status: httpStatusText.SUCCESS,
+    message: 'User deleted successfully',
+  });
+});
+
+/* ===========================
+   EXPORTS
+=========================== */
 
 module.exports = {
   getMyProfile,

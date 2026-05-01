@@ -8,9 +8,12 @@ const userRoles = require('../user.roles');
 const isAdmin = require('../Middlewares/isAdmin');
 
 
+
 // ================= CLIENT ROUTES =================
 
-router.post('/',verifyToken, allowedTo(userRoles.CLIENT),OrderController.createOrder);
+
+// router.post("/create-order", );
+router.post('/create-order',verifyToken, allowedTo(userRoles.CLIENT),OrderController.createOrder);
 
 router.get('/my-orders',verifyToken,allowedTo(userRoles.CLIENT),OrderController.getMyOrders);
 

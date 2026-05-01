@@ -1,60 +1,180 @@
-const { add } = require('lodash');
-const mongoose = require('mongoose');
+// // const { add } = require('lodash');
+// // const mongoose = require('mongoose');
+
+// // const orderSchema = new mongoose.Schema({
+// //   userId: {
+// //     type: mongoose.Schema.Types.ObjectId,
+// //     ref: 'User',
+// //     required: true,
+// //   },
+
+// //   items: {
+// //     type: [{
+// //       productId: {
+// //         type: mongoose.Schema.Types.ObjectId,
+// //         ref: 'Product',
+// //         required: true
+// //       },
+// //       name: {
+// //         type: String,
+// //         required: true
+// //       },
+// //       price: {
+// //         type: Number,
+// //         required: true,
+// //         min: 0
+// //       },
+// //       quantity: {
+// //         type: Number,
+// //         required: true,
+// //         min: 1
+// //       }
+// //     }],
+// //     required: true,
+// //     validate: [arr => arr.length > 0, 'Order must have at least one item']
+// //   },
+
+// //   totalAmount: {
+// //     type: Number,
+// //     required: true,
+// //     min: 0
+// //   },
+
+// //   orderStatus: {
+// //     type: String,
+// //     enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
+// //     default: 'pending'
+// //   },
+
+// //   deliveryAddress: {
+// //     governorate: { type: String, required: true },
+// //     city: { type: String, required: true },
+// //     address: { type: String, required: true },
+// //     phoneNumber: { type: String, required: true }
+// //   }
+
+// // }, 
+// // { timestamps: true }
+// // );
+
+// // module.exports = mongoose.model('Order', orderSchema);
+
+
+// const mongoose = require('mongoose');
+
+// const orderSchema = new mongoose.Schema(
+//   {
+//     userId: {
+//       type: mongoose.Schema.Types.ObjectId,
+//       ref: 'User',
+//       required: true,
+//     },
+
+//     items: [
+//       {
+//         productId: {
+//           type: mongoose.Schema.Types.ObjectId,
+//           ref: 'Product',
+//           required: true,
+//         },
+//         name: {
+//           type: String,
+//           required: true,
+//         },
+//         price: {
+//           type: Number,
+//           required: true,
+//           min: 0,
+//         },
+//         quantity: {
+//           type: Number,
+//           required: true,
+//           min: 1,
+//         },
+//       },
+//     ],
+
+//     totalAmount: {
+//       type: Number,
+//       required: true,
+//       min: 0,
+//     },
+
+//     deliveryPrice: {
+//       type: Number,
+//       required: true,
+//       default: 0,
+//       min: 0,
+//     },
+
+//     paymentMethod: {
+//       type: String,
+//       enum: ['cash', 'card'],
+//       default: 'cash',
+//     },
+
+//     orderStatus: {
+//       type: String,
+//       enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
+//       default: 'pending',
+//     },
+
+//     deliveryAddress: {
+//       governorate: { type: String, required: true },
+//       city: { type: String, required: true },
+//       address: { type: String, required: true },
+//       phoneNumber: { type: String, required: true },
+//     },
+//   },
+//   { timestamps: true }
+// );
+
+// module.exports = mongoose.model('Order', orderSchema);
+
+
+const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
+    ref: "User",
+    required: true
   },
 
-  items: {
-    type: [{
+  items: [
+    {
       productId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true
+        ref: "Product"
       },
-      name: {
-        type: String,
-        required: true
-      },
-      price: {
-        type: Number,
-        required: true,
-        min: 0
-      },
-      quantity: {
-        type: Number,
-        required: true,
-        min: 1
-      }
-    }],
-    required: true,
-    validate: [arr => arr.length > 0, 'Order must have at least one item']
-  },
+      name: String,
+      price: Number,   // snapshot
+      quantity: Number
+    }
+  ],
 
-  totalAmount: {
-    type: Number,
-    required: true,
-    min: 0
+  subtotal: Number,
+  deliveryPrice: Number,
+  totalAmount: Number,
+
+  paymentMethod: {
+    type: String,
+    enum: ["cash", "card"],
+    default: "cash"
   },
 
   orderStatus: {
     type: String,
-    enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
-    default: 'pending'
+    enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
+    default: "pending"
   },
 
   deliveryAddress: {
-    governorate: { type: String, required: true },
-    city: { type: String, required: true },
-    address: { type: String, required: true },
-    phoneNumber: { type: String, required: true }
+    governorate: String,
+    city: String,
+    street: String,
+    phoneNumber: String
   }
-
-}, 
-{ timestamps: true }
-);
+}, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);
