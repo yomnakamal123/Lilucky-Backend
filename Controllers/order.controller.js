@@ -15,19 +15,14 @@ const createOrder = asyncwrapper(async (req, res, next) => {
   session.startTransaction();
 
   try {
-
     const userId = req.user._id;
     const body = req.body;
-
-    /* ================= GET CART ================= */
 
     const cart = await Cart.findOne({ userId }).session(session);
 
     if (!cart || cart.items.length === 0) {
       throw new Error("Cart is empty");
     }
-
-    /* ================= NORMALIZE ADDRESS ================= */
 
     const address = body.deliveryAddress || body.shippingAddress;
 
@@ -38,8 +33,6 @@ const createOrder = asyncwrapper(async (req, res, next) => {
     const governorate = address.governorate?.toLowerCase().trim();
     const city = address.city;
     const street = address.street;
-
-    /* ================= CALCULATE ORDER ITEMS ================= */
 
     let subtotal = 0;
     const orderItems = [];
@@ -52,10 +45,6 @@ const createOrder = asyncwrapper(async (req, res, next) => {
         throw new Error("Product not found");
       }
 
-      if (product.stock < item.quantity) {
-        throw new Error(`Not enough stock for ${product.name}`);
-      }
-
       const price = product.price;
 
       subtotal += price * item.quantity;
@@ -64,17 +53,14 @@ const createOrder = asyncwrapper(async (req, res, next) => {
         productId: product._id,
         name: product.name,
         price,
-        quantity: item.quantity
+        quantity: item.quantity,
+        color: item.color,
+        size: item.size
       });
-
-      product.stock -= item.quantity;
-      await product.save({ session });
     }
 
-    /* ================= SHIPPING ================= */
-
     const shipping = await Shipping.findOne({
-      governorate: governorate
+      governorate
     }).session(session);
 
     if (!shipping) {
@@ -82,12 +68,7 @@ const createOrder = asyncwrapper(async (req, res, next) => {
     }
 
     const deliveryPrice = shipping.price;
-
-    /* ================= TOTAL ================= */
-
     const totalAmount = subtotal + deliveryPrice;
-
-    /* ================= CREATE ORDER ================= */
 
     const order = await Order.create([{
       userId,
@@ -96,16 +77,14 @@ const createOrder = asyncwrapper(async (req, res, next) => {
       deliveryPrice,
       totalAmount,
       paymentMethod: body.paymentMethod || "cash",
+      orderStatus: "pending",
 
       deliveryAddress: {
         governorate,
         city,
-        address: street
+        street
       }
-
     }], { session });
-
-    /* ================= CLEAR CART ================= */
 
     await Cart.updateOne(
       { userId },
@@ -122,15 +101,16 @@ const createOrder = asyncwrapper(async (req, res, next) => {
     });
 
   } catch (error) {
-
     await session.abortTransaction();
     session.endSession();
-
     return next(error);
   }
 });
 
 
+//* ===========================
+//*    GET MY ORDERS
+//* ===========================
 
 const getMyOrders = asyncwrapper(async (req, res, next) => {
   const userId = req.user._id;
@@ -145,18 +125,8 @@ const getMyOrders = asyncwrapper(async (req, res, next) => {
 });
 
 /* ===========================
-   ADMIN FUNCTIONS
+   ADMIN FUNCTIONS  
 =========================== */
-// const getAllOrders = asyncwrapper(async (req, res, next) => {
-//   const orders = await Order.find().sort({ createdAt: -1 });
-
-//   res.status(200).json({
-//     status: httpStatusText.SUCCESS,
-//     results: orders.length,
-//     data: { orders }
-//   });
-// });
-
 
 const getAllOrders = asyncwrapper(async (req, res, next) => {
   const orders = await Order.find()
@@ -170,30 +140,98 @@ const getAllOrders = asyncwrapper(async (req, res, next) => {
   });
 });
 
+//* ===========================
+//*    UPDATE ORDER STATUS
+//* =========================== 
+
+
 const updateOrderStatus = asyncwrapper(async (req, res, next) => {
   const { id } = req.params;
   const { orderStatus } = req.body;
 
   const allowedStatus = Order.schema.path('orderStatus').enumValues;
+
   if (!allowedStatus.includes(orderStatus)) {
-    return next(appError.create(`Invalid status. Must be one of: ${allowedStatus.join(', ')}`, 400));
+    return next(
+      appError.create(
+        `Invalid status. Must be one of: ${allowedStatus.join(', ')}`,
+        400
+      )
+    );
   }
 
-  const order = await Order.findByIdAndUpdate(
-    id,
-    { orderStatus },
-    { new: true } 
-  );
+  const order = await Order.findById(id);
 
   if (!order) {
     return next(appError.create('Order not found', 404));
   }
 
-  res.status(200).json({
-    status: 'success',
-    data: { order }
-  });
+  /* ================= BLOCK IF CANCELLED ================= */
+  if (order.orderStatus === "cancelled") {
+    return next(appError.create("Order is already cancelled", 400));
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+
+    /* ================= CONFIRM ORDER ================= */
+    if (orderStatus === "confirmed" && order.orderStatus === "pending") {
+
+      for (const item of order.items) {
+
+        const product = await Product.findById(item.productId).session(session);
+
+        if (product) {
+          product.stock -= item.quantity;
+
+          if (product.stock < 0) {
+            throw new Error(`Stock cannot be negative for ${product.name}`);
+          }
+
+          await product.save({ session });
+        }
+      }
+    }
+
+    /* ================= CANCEL ORDER ================= */
+    if (orderStatus === "cancelled" && order.orderStatus === "confirmed") {
+
+      for (const item of order.items) {
+
+        const product = await Product.findById(item.productId).session(session);
+
+        if (product) {
+          product.stock += item.quantity;
+          await product.save({ session });
+        }
+      }
+    }
+
+    /* ================= UPDATE STATUS ================= */
+    order.orderStatus = orderStatus;
+    await order.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      status: "success",
+      data: { order }
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    return next(error);
+  }
 });
+
+
+//* ===========================
+//*    GET MOST SELLING PRODUCT
+//* ===========================
 
 
 const getMostSellingProduct = asyncwrapper(async (req, res, next) => {
@@ -201,7 +239,6 @@ const getMostSellingProduct = asyncwrapper(async (req, res, next) => {
     // Optional: only delivered orders
     // { $match: { orderStatus: 'delivered' } },
 
-    // 1️⃣ Unwind items array
     { $unwind: '$items' },
 
     // 2️⃣ Group by productId and sum quantities

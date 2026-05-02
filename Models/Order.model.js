@@ -1,133 +1,47 @@
-// // const { add } = require('lodash');
-// // const mongoose = require('mongoose');
+// const mongoose = require("mongoose");
 
-// // const orderSchema = new mongoose.Schema({
-// //   userId: {
-// //     type: mongoose.Schema.Types.ObjectId,
-// //     ref: 'User',
-// //     required: true,
-// //   },
-
-// //   items: {
-// //     type: [{
-// //       productId: {
-// //         type: mongoose.Schema.Types.ObjectId,
-// //         ref: 'Product',
-// //         required: true
-// //       },
-// //       name: {
-// //         type: String,
-// //         required: true
-// //       },
-// //       price: {
-// //         type: Number,
-// //         required: true,
-// //         min: 0
-// //       },
-// //       quantity: {
-// //         type: Number,
-// //         required: true,
-// //         min: 1
-// //       }
-// //     }],
-// //     required: true,
-// //     validate: [arr => arr.length > 0, 'Order must have at least one item']
-// //   },
-
-// //   totalAmount: {
-// //     type: Number,
-// //     required: true,
-// //     min: 0
-// //   },
-
-// //   orderStatus: {
-// //     type: String,
-// //     enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
-// //     default: 'pending'
-// //   },
-
-// //   deliveryAddress: {
-// //     governorate: { type: String, required: true },
-// //     city: { type: String, required: true },
-// //     address: { type: String, required: true },
-// //     phoneNumber: { type: String, required: true }
-// //   }
-
-// // }, 
-// // { timestamps: true }
-// // );
-
-// // module.exports = mongoose.model('Order', orderSchema);
-
-
-// const mongoose = require('mongoose');
-
-// const orderSchema = new mongoose.Schema(
-//   {
-//     userId: {
-//       type: mongoose.Schema.Types.ObjectId,
-//       ref: 'User',
-//       required: true,
-//     },
-
-//     items: [
-//       {
-//         productId: {
-//           type: mongoose.Schema.Types.ObjectId,
-//           ref: 'Product',
-//           required: true,
-//         },
-//         name: {
-//           type: String,
-//           required: true,
-//         },
-//         price: {
-//           type: Number,
-//           required: true,
-//           min: 0,
-//         },
-//         quantity: {
-//           type: Number,
-//           required: true,
-//           min: 1,
-//         },
-//       },
-//     ],
-
-//     totalAmount: {
-//       type: Number,
-//       required: true,
-//       min: 0,
-//     },
-
-//     deliveryPrice: {
-//       type: Number,
-//       required: true,
-//       default: 0,
-//       min: 0,
-//     },
-
-//     paymentMethod: {
-//       type: String,
-//       enum: ['cash', 'card'],
-//       default: 'cash',
-//     },
-
-//     orderStatus: {
-//       type: String,
-//       enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
-//       default: 'pending',
-//     },
-
-//     deliveryAddress: {
-//       governorate: { type: String, required: true },
-//       city: { type: String, required: true },
-//       address: { type: String, required: true },
-//       phoneNumber: { type: String, required: true },
-//     },
+// const orderSchema = new mongoose.Schema({
+//   userId: {
+//     type: mongoose.Schema.Types.ObjectId,
+//     ref: "User",
+//     required: true
 //   },
-//   { timestamps: true }
-// );
+
+//   items: [
+//     {
+//       productId: {
+//         type: mongoose.Schema.Types.ObjectId,
+//         ref: "Product"
+//       },
+//       name: String,
+//       price: Number,   
+//       quantity: Number
+//     }
+//   ],
+
+//   subtotal: Number,
+//   deliveryPrice: Number,
+//   totalAmount: Number,
+
+//   paymentMethod: {
+//     type: String,
+//     enum: ["cash", "card"],
+//     default: "cash"
+//   },
+
+//   orderStatus: {
+//     type: String,
+//     enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
+//     default: "pending"
+//   },
+
+//   deliveryAddress: {
+//     governorate: String,
+//     city: String,
+//     street: String,
+//     phoneNumber: String
+//   }
+// }, { timestamps: true });
 
 // module.exports = mongoose.model('Order', orderSchema);
 
@@ -145,11 +59,21 @@ const orderSchema = new mongoose.Schema({
     {
       productId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Product"
+        ref: "Product",
+        required: true
       },
+
       name: String,
-      price: Number,   // snapshot
-      quantity: Number
+      price: Number,
+      quantity: Number,
+
+      // 👇 مهمين جداً
+      color: String,
+
+      size: String,
+
+      // اختياري لو عايز تربطها بالـ variant نفسه
+      variantId: mongoose.Schema.Types.ObjectId
     }
   ],
 
@@ -177,4 +101,4 @@ const orderSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Order', orderSchema);
+module.exports = mongoose.model("Order", orderSchema);

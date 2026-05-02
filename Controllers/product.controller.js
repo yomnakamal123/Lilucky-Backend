@@ -26,9 +26,12 @@ const getAllProducts = asyncwrapper(async (req, res, next) => {
 });
 
 
+//* ===========================
+//*    GET PRODUCT BY ID
+//* ===========================
 const getProductById = asyncwrapper(async (req, res, next) => {
   const product = await Product.findById(req.params.id)
-    .populate('category'); // 🔥 مهم جداً
+    .populate('category'); 
 
   if (!product || !product.isActive) {
     return next(
@@ -49,8 +52,6 @@ const getProductById = asyncwrapper(async (req, res, next) => {
 const createProduct = asyncwrapper(async (req, res) => {
   try {
     let variants = [];
-
-    // ✅ parse variants safely
     try {
       if (req.body.variants) {
         variants =
@@ -71,8 +72,6 @@ const createProduct = asyncwrapper(async (req, res) => {
     }
 
     const files = req.files || [];
-
-    // ✅ group files by fieldname
     const filesMap = {};
 
     for (const file of files) {
@@ -146,48 +145,146 @@ const createProduct = asyncwrapper(async (req, res) => {
 //  PATCH /api/products/:id
 //=========================== */
 
+
 const updateProduct = asyncwrapper(async (req, res, next) => {
   const productId = req.params.id;
 
+  /* ================= VALIDATE ID ================= */
+  if (!productId) {
+    return next(
+      appError.create('Product ID is required', 400, httpStatusText.FAIL)
+    );
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    return next(
+      appError.create('Invalid product ID', 400, httpStatusText.FAIL)
+    );
+  }
+
   const product = await Product.findById(productId);
+
   if (!product) {
     return next(
       appError.create('Product not found', 404, httpStatusText.FAIL)
     );
   }
 
-  const fieldsToUpdate = req.body;
+  /* ================= CLEAN BODY ================= */
+  const fieldsToUpdate = {};
 
-  if (typeof fieldsToUpdate.sizes === 'string') {
-    fieldsToUpdate.sizes = fieldsToUpdate.sizes.split(',');
-  }
-  if (typeof fieldsToUpdate.colors === 'string') {
-    fieldsToUpdate.colors = fieldsToUpdate.colors.split(',');
-  }
-  if (req.files && req.files.length > 0) {
-    product.images.forEach((imgPath) => {
-      const fullPath = path.join(__dirname, '..', imgPath);
-      if (fs.existsSync(fullPath)) {
-        fs.unlinkSync(fullPath);
+  if (req.body && typeof req.body === 'object') {
+    Object.keys(req.body).forEach((key) => {
+      const value = req.body[key];
+
+      if (value !== undefined && value !== null && value !== '') {
+        fieldsToUpdate[key] = value;
       }
     });
+  }
+
+  /* ================= FIX FORM-DATA ARRAYS (IMPORTANT) ================= */
+
+  // 🔥 variants fix (main issue you had)
+  if (fieldsToUpdate.variants) {
+    try {
+      fieldsToUpdate.variants =
+        typeof fieldsToUpdate.variants === 'string'
+          ? JSON.parse(fieldsToUpdate.variants)
+          : fieldsToUpdate.variants;
+    } catch (err) {
+      return next(
+        appError.create('Invalid variants format', 400, httpStatusText.FAIL)
+      );
+    }
+  }
+
+  /* ================= NORMALIZE NUMBERS ================= */
+  const numericFields = ['stock', 'price', 'main_price'];
+
+  numericFields.forEach((field) => {
+    if (fieldsToUpdate[field] !== undefined) {
+      const value = Number(fieldsToUpdate[field]);
+
+      if (Number.isNaN(value)) {
+        return next(
+          appError.create(`${field} must be a valid number`, 400, httpStatusText.FAIL)
+        );
+      }
+
+      fieldsToUpdate[field] = value;
+    }
+  });
+
+  /* ================= NORMALIZE ARRAYS ================= */
+  const arrayFields = ['sizes', 'colors'];
+
+  arrayFields.forEach((field) => {
+    if (fieldsToUpdate[field] !== undefined) {
+      if (typeof fieldsToUpdate[field] === 'string') {
+        fieldsToUpdate[field] = fieldsToUpdate[field]
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+
+      if (!Array.isArray(fieldsToUpdate[field])) {
+        return next(
+          appError.create(`${field} must be an array`, 400, httpStatusText.FAIL)
+        );
+      }
+    }
+  });
+
+  /* ================= HANDLE IMAGES ================= */
+  if (req.files?.length) {
+    const oldImages = product.images || [];
+
+    for (const imgPath of oldImages) {
+      try {
+        const fullPath = path.join(__dirname, '..', imgPath);
+
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+        }
+      } catch (err) {
+        console.log('Image delete error:', err.message);
+      }
+    }
+
     fieldsToUpdate.images = req.files.map(
       (file) => `/uploads/products/${file.filename}`
     );
   }
 
+  /* ================= CHECK EMPTY UPDATE ================= */
+  if (Object.keys(fieldsToUpdate).length === 0) {
+    return next(
+      appError.create('No valid fields to update', 400, httpStatusText.FAIL)
+    );
+  }
+
+  /* ================= UPDATE ================= */
   const updatedProduct = await Product.findByIdAndUpdate(
     productId,
-    fieldsToUpdate,
-    { new: true, runValidators: true }
+    { $set: fieldsToUpdate },
+    {
+      new: true,
+      runValidators: true,
+      strict: false
+    }
   );
 
-  res.status(200).json({
+  return res.status(200).json({
     status: httpStatusText.SUCCESS,
     data: updatedProduct,
   });
 });
 
+
+/* ===========================
+   DELETE /api/products/:id
+=========================== */
 
 
 const deleteProduct = asyncwrapper(async (req, res, next) => {

@@ -9,20 +9,17 @@ const upload = require('../Middlewares/uploadImage');
 const isAdmin = require('../Middlewares/isAdmin');
 
 
-// router.get('/get-all' , ProductController.getAllProducts);
 // Public
 router.get('/get-all-products', ProductController.getAllProducts);
 // Admin
 
 router.patch('/assign-category',verifyToken,isAdmin,ProductController.assignCategoryToProduct);
 
-
-// images = field name
 router.post(
   '/add-product',
   verifyToken,
   allowedTo(userRoles.ADMIN),
-  upload.any(), // ✔️ تمام
+  upload.any(), 
   ProductController.createProduct
 );
 
@@ -35,12 +32,10 @@ router.get('/get/:id', ProductController.getProductById);
 // handle like product
 router.patch('/like/:id',verifyToken, ProductController.likeProduct);
 
-router.patch('/:id', verifyToken, isAdmin, upload.any(), ProductController.updateProduct);
+router.patch('/update/:id', verifyToken, upload.any(), ProductController.updateProduct);
 
 router.delete('/:id',verifyToken,allowedTo(userRoles.ADMIN),ProductController.deleteProduct);
 
-// Public
-router.get('/:id', ProductController.getProductById);
 
 
 module.exports = router;
