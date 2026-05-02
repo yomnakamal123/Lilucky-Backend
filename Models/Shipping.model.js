@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const ShippingSchema = new mongoose.Schema({
+const shippingSchema = new mongoose.Schema({
   governorate: {
     type: String,
     unique: true,
@@ -22,4 +22,4 @@ const ShippingSchema = new mongoose.Schema({
 
 // 🔥 FIX HERE
 module.exports =
-  mongoose.models.Shipping || mongoose.model("Shipping", ShippingSchema);
+  mongoose.models.Shipping || mongoose.model("Shipping", shippingSchema);

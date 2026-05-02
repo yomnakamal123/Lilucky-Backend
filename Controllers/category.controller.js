@@ -1,7 +1,7 @@
-const Category = require('../Models/Category.model');
 const asyncwrapper = require('../asyncwrapper');
 const appError = require('../appError');
 const slugify = require('slugify');
+const Category = require('../Models/Category.model');
 
 
 

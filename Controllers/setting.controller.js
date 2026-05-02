@@ -1,4 +1,3 @@
-const Setting = require('../Models/Settings.model');
 const mongoose = require('mongoose');
 const httpStatusText = require('../httpStatusText');
 const asyncwrapper = require('../asyncwrapper');
@@ -9,6 +8,7 @@ const path = require('path');
 const upload = require('../Middlewares/uploadImage');
 const cloudinary = require("../config/cloudinary");
 const uploadToCloudinary = require("../utils/uploadToCloudinary");
+const Setting = require('../Models/Settings.model');
 
 /* ===========================
    GET SETTINGS

@@ -1,18 +1,16 @@
 const mongoose = require('mongoose');
-const Order = require('../Models/Order.model');
-const Product = require('../Models/Product.model');
-const Cart = require('../Models/Cart.model');
 const asyncwrapper = require('../asyncwrapper');
 const appError = require('../appError');
 const httpStatusText = require('../httpStatusText');
-const orderService = require('../Services/order.service');
+const Order = require('../Models/Order.model');
+const Product = require('../Models/Product.model');
+const Cart = require('../Models/Cart.model');
 const Shipping = require('../Models/Shipping.model');
 /* ===========================
    CLIENT FUNCTIONS
 =========================== */
 
 const createOrder = asyncwrapper(async (req, res, next) => {
-
   const session = await mongoose.startSession();
   session.startTransaction();
 

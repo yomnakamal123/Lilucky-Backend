@@ -1,5 +1,5 @@
 
-const Shipping = require("../models/shipping.model");
+const Shipping = require("../Models/Shipping.model");
 const httpStatusText = require("../httpStatusText");
 const asyncwrapper = require("../asyncwrapper");
 const appError = require("../appError");
