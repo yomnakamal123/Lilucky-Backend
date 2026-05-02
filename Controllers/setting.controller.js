@@ -178,6 +178,10 @@ const upsertHero = async (req, res) => {
   }
 };
 
+//* ===========================
+//*    GET HERO BY POSITION
+//* ===========================
+
 const getHeroByPosition = async (req, res) => {
   try {
     const { position } = req.params;
@@ -204,9 +208,45 @@ const getHeroByPosition = async (req, res) => {
   }
 };
 
+/* ===========================
+   UPDATE HERO
+=========================== */
+
+const updateHero = async (req, res) => {
+  try {
+    const hero = await Setting.findOne();
+
+    if (!hero) {
+      return res.status(404).json({
+        message: "Hero not found",
+      });
+    }
+
+    const allowedFields = ["title", "subtitle", "color", "image"];
+
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        hero[field] = req.body[field];
+      }
+    });
+
+    await hero.save();
+
+    res.status(200).json({
+      message: "Hero updated successfully",
+      data: hero,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 
 module.exports = {
   getSettings,
   upsertHero,
   getHeroByPosition,
+  updateHero,
 };

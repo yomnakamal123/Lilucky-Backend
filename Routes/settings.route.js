@@ -11,6 +11,8 @@ router.post(
   settingsController.upsertHero
 );
 
+router.patch("/hero/update", settingsController.updateHero);
+
 router.get("/hero/:position", settingsController.getHeroByPosition);
 
 module.exports = router;
