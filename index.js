@@ -205,12 +205,7 @@ connectDB();
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "https://lilucky-front.vercel.app",
-      "https://lilucky-front-2xh4yuxyn-alaakamals-projects.vercel.app",
-      "https://lilucky-front-git-main-alaakamals-projects.vercel.app",
-    ],
+    origin: process.env.FRONTEND_URL,
     credentials: true,
   })
 );
