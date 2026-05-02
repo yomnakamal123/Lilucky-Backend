@@ -214,35 +214,51 @@ const getHeroByPosition = async (req, res) => {
 
 const updateHero = async (req, res) => {
   try {
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
+
     const hero = await Setting.findOne();
 
     if (!hero) {
-      return res.status(404).json({
-        message: "Hero not found",
-      });
+      return res.status(404).json({ message: "Hero not found" });
     }
 
-    const allowedFields = ["title", "subtitle", "color", "image"];
+    const fields = [
+      "title_ar",
+      "title_en",
+      "subtitle_ar",
+      "subtitle_en",
+      "titleColor",
+      "subtitleColor",
+      "buttonTextColor",
+      "buttonBgColor",
+    ];
 
-    allowedFields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        hero[field] = req.body[field];
+    fields.forEach((key) => {
+      // ✅ هنا بنسمح حتى بالقيم الفاضية
+      if (req.body[key] !== undefined) {
+        hero[key] = req.body[key];
       }
     });
 
+    if (req.file) {
+      hero.image = `/uploads/${req.file.filename}`;
+    }
+
     await hero.save();
 
-    res.status(200).json({
-      message: "Hero updated successfully",
+    res.json({
+      message: "Updated successfully",
       data: hero,
     });
+
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       message: error.message,
     });
   }
 };
-
 
 module.exports = {
   getSettings,
