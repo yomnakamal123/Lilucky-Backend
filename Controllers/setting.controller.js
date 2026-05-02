@@ -217,44 +217,80 @@ const updateHero = async (req, res) => {
     console.log("BODY:", req.body);
     console.log("FILE:", req.file);
 
-    const hero = await Setting.findOne();
+    const position = Number(req.body.position);
 
-    if (!hero) {
-      return res.status(404).json({ message: "Hero not found" });
+    if (isNaN(position)) {
+      return res.status(400).json({
+        message: "position is required",
+      });
     }
 
-    const fields = [
-      "title_ar",
-      "title_en",
-      "subtitle_ar",
-      "subtitle_en",
-      "titleColor",
-      "subtitleColor",
-      "buttonTextColor",
-      "buttonBgColor",
-    ];
+    const settings = await Setting.findOne();
 
-    fields.forEach((key) => {
-      // ✅ هنا بنسمح حتى بالقيم الفاضية
-      if (req.body[key] !== undefined) {
-        hero[key] = req.body[key];
-      }
-    });
+    if (!settings) {
+      return res.status(404).json({
+        message: "Settings not found",
+      });
+    }
 
+    const index = settings.sections.findIndex(
+      (s) => s.type === "hero" && s.position === position
+    );
+
+    if (index === -1) {
+      return res.status(404).json({
+        message: "Hero not found",
+      });
+    }
+
+    const hero = settings.sections[index];
+
+    /* ===========================
+       UPDATE TEXT (SAFE)
+    =========================== */
+    hero.title = {
+      ar: req.body.title_ar ?? hero.title?.ar ?? "",
+      en: req.body.title_en ?? hero.title?.en ?? "",
+    };
+
+    hero.subtitle = {
+      ar: req.body.subtitle_ar ?? hero.subtitle?.ar ?? "",
+      en: req.body.subtitle_en ?? hero.subtitle?.en ?? "",
+    };
+
+    /* ===========================
+       COLORS
+    =========================== */
+    hero.textColors = {
+      title: req.body.titleColor ?? hero.textColors?.title ?? "#000000",
+      subtitle: req.body.subtitleColor ?? hero.textColors?.subtitle ?? "#666666",
+      buttonText: req.body.buttonTextColor ?? hero.textColors?.buttonText ?? "#ffffff",
+    };
+
+    hero.button = {
+      bgColor: req.body.buttonBgColor ?? hero.button?.bgColor ?? "#000000",
+    };
+
+    /* ===========================
+       IMAGE (optional)
+    =========================== */
     if (req.file) {
       hero.image = `/uploads/${req.file.filename}`;
     }
 
-    await hero.save();
+    settings.sections[index] = hero;
 
-    res.json({
-      message: "Updated successfully",
+    await settings.save();
+
+    return res.json({
+      status: "success",
       data: hero,
     });
 
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
+    console.log("updateHero error:", error);
+
+    return res.status(500).json({
       message: error.message,
     });
   }
