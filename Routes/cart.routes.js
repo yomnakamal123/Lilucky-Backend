@@ -7,6 +7,7 @@ router.use(verifyToken);
 router.post('/add-to-cart',verifyToken,cartcontroller.addToCart);
 router.get('/get-cart',verifyToken,cartcontroller.getCart);
 router.delete('/clear-cart',verifyToken,cartcontroller.clearCart);
+router.put('/update-cart-item', verifyToken, cartcontroller.updateCartItem);
 router.delete('/remove-from-cart/:productId',verifyToken,cartcontroller.removeFromCart);
 
 

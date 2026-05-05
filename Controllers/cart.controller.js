@@ -2,7 +2,6 @@ const Cart = require('../Models/Cart.model');
 const Product = require('../Models/Product.model');
 const asyncwrapper = require('../asyncwrapper');
 const appError = require('../appError');
-
 const addToCart = asyncwrapper(async (req, res, next) => {
   const userId = req.user._id;
   let { productId, quantity } = req.body;
@@ -19,31 +18,8 @@ const addToCart = asyncwrapper(async (req, res, next) => {
     return next(appError.create('Product not found', 404));
   }
 
-  // 🔥 CHECK STOCK
   let cart = await Cart.findOne({ userId });
 
-  let existingQty = 0;
-
-  if (cart) {
-    const item = cart.items.find(
-      i => i.productId.toString() === productId
-    );
-
-    if (item) {
-      existingQty = item.quantity;
-    }
-  }
-
-  const newTotalQty = existingQty + quantity;
-
-  if (newTotalQty > product.stock) {
-    return next(
-      appError.create(
-        `Not enough stock. Available: ${product.stock}`,
-        400
-      )
-    );
-  }
   if (!cart) {
     cart = await Cart.create({
       userId,
@@ -56,12 +32,12 @@ const addToCart = asyncwrapper(async (req, res, next) => {
   );
 
   if (itemIndex > -1) {
-    cart.items[itemIndex].quantity = newTotalQty;
+    cart.items[itemIndex].quantity += quantity;
   } else {
     cart.items.push({
       productId,
       priceAtAddToCart: product.price,
-      quantity: quantity
+      quantity
     });
   }
 
@@ -73,15 +49,44 @@ const addToCart = asyncwrapper(async (req, res, next) => {
   });
 });
 
+
+//**********
+// get cart
+ //**********
+
 const getCart = asyncwrapper(async (req, res) => {
   const cart = await Cart.findOne({ userId: req.user._id })
-    .populate('items.productId', 'name price');
+    .populate('items.productId', 'name price stock variants')
 
   res.status(200).json({
     status: 'success',
     data: { cart }
   });
 });
+
+
+const updateCartItem = async (req, res) => {
+  const userId = req.user._id;
+  const { productId, quantity } = req.body;
+
+  const cart = await Cart.findOne({ userId });
+
+  if (!cart) return res.status(404).json({ message: "Cart not found" });
+
+  const item = cart.items.find(
+    (i) => i.productId.toString() === productId
+  );
+
+  if (!item) return res.status(404).json({ message: "Item not found" });
+
+  item.quantity = quantity;
+
+  await cart.save();
+
+  res.json({ message: "updated", cart });
+};
+
+
 
 const removeFromCart = asyncwrapper(async (req, res, next) => {
   const userId = req.user._id;
@@ -130,6 +135,7 @@ const clearCart = asyncwrapper(async (req, res) => {
 module.exports ={
     addToCart,
    getCart,
+   updateCartItem,
    removeFromCart,
    clearCart,
 };

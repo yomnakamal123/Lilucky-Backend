@@ -9,7 +9,6 @@ const Shipping = require('../Models/Shipping.model');
 /* ===========================
    CLIENT FUNCTIONS
 =========================== */
-
 const createOrder = asyncwrapper(async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -45,6 +44,11 @@ const createOrder = asyncwrapper(async (req, res, next) => {
         throw new Error("Product not found");
       }
 
+      // ✅ check only (NO stock deduction here)
+      if (product.stock < item.quantity) {
+        throw new Error(`Not enough stock for ${product.name}`);
+      }
+
       const price = product.price;
 
       subtotal += price * item.quantity;
@@ -78,7 +82,6 @@ const createOrder = asyncwrapper(async (req, res, next) => {
       totalAmount,
       paymentMethod: body.paymentMethod || "cash",
       orderStatus: "pending",
-
       deliveryAddress: {
         governorate,
         city,
@@ -106,7 +109,6 @@ const createOrder = asyncwrapper(async (req, res, next) => {
     return next(error);
   }
 });
-
 
 //* ===========================
 //*    GET MY ORDERS
@@ -144,7 +146,6 @@ const getAllOrders = asyncwrapper(async (req, res, next) => {
 //*    UPDATE ORDER STATUS
 //* =========================== 
 
-
 const updateOrderStatus = asyncwrapper(async (req, res, next) => {
   const { id } = req.params;
   const { orderStatus } = req.body;
@@ -166,7 +167,6 @@ const updateOrderStatus = asyncwrapper(async (req, res, next) => {
     return next(appError.create('Order not found', 404));
   }
 
-  /* ================= BLOCK IF CANCELLED ================= */
   if (order.orderStatus === "cancelled") {
     return next(appError.create("Order is already cancelled", 400));
   }
@@ -183,15 +183,15 @@ const updateOrderStatus = asyncwrapper(async (req, res, next) => {
 
         const product = await Product.findById(item.productId).session(session);
 
-        if (product) {
-          product.stock -= item.quantity;
+        if (!product) continue;
 
-          if (product.stock < 0) {
-            throw new Error(`Stock cannot be negative for ${product.name}`);
-          }
-
-          await product.save({ session });
+        if (product.stock < item.quantity) {
+          throw new Error(`Not enough stock for ${product.name}`);
         }
+
+        product.stock -= item.quantity;
+
+        await product.save({ session });
       }
     }
 
@@ -209,7 +209,6 @@ const updateOrderStatus = asyncwrapper(async (req, res, next) => {
       }
     }
 
-    /* ================= UPDATE STATUS ================= */
     order.orderStatus = orderStatus;
     await order.save({ session });
 
@@ -227,7 +226,6 @@ const updateOrderStatus = asyncwrapper(async (req, res, next) => {
     return next(error);
   }
 });
-
 
 //* ===========================
 //*    GET MOST SELLING PRODUCT
