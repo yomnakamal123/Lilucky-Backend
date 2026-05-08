@@ -32,9 +32,17 @@ router.get('/get/:id', ProductController.getProductById);
 // handle like product
 router.patch('/like/:id',verifyToken, ProductController.likeProduct);
 
-router.patch('/update/:id', verifyToken, upload.any(), ProductController.updateProduct);
+router.patch(
+  '/update/:id',
+  verifyToken,
+  allowedTo(userRoles.ADMIN),
+  upload.any(),
+  ProductController.updateProduct
+);
+router.patch('/restore/:id',verifyToken,allowedTo(userRoles.ADMIN),ProductController.restoreProduct);
 
 router.delete('/:id',verifyToken,allowedTo(userRoles.ADMIN),ProductController.deleteProduct);
+
 
 
 
