@@ -29,6 +29,7 @@ const getAllProducts = asyncwrapper(async (req, res, next) => {
 //* ===========================
 //*    GET PRODUCT BY ID
 //* ===========================
+
 const getProductById = asyncwrapper(async (req, res, next) => {
   const product = await Product.findById(req.params.id)
     .populate('category');
@@ -294,6 +295,7 @@ const createProduct = asyncwrapper(async (req, res) => {
 //  PATCH /api/products/:id
 //=========================== */
 
+
 const updateProduct = asyncwrapper(async (req, res, next) => {
   const productId = req.params.id;
 
@@ -307,44 +309,28 @@ const updateProduct = asyncwrapper(async (req, res, next) => {
 
   let variants = [];
 
-  try {
-    if (req.body.variants) {
+  if (req.body.variants) {
+    try {
       variants =
         typeof req.body.variants === "string"
           ? JSON.parse(req.body.variants)
           : req.body.variants;
+    } catch (err) {
+      return next(appError.create("Invalid variants format", 400));
     }
-  } catch (err) {
-    return next(appError.create("Invalid variants JSON", 400));
   }
 
   /* ================= BUILD UPDATE OBJECT ================= */
 
   const fieldsToUpdate = {};
 
-  /* ================= NORMAL FIELDS ================= */
+  /* ================= TEXT FIELDS ================= */
 
-  Object.keys(req.body || {}).forEach((key) => {
-    if (
-      [
-        "name_en",
-        "name_ar",
-        "description_en",
-        "description_ar",
-        "material_en",
-        "material_ar",
-        "variants",
-      ].includes(key)
-    ) {
-      return;
+  const assignIfExists = (key, objKey) => {
+    if (req.body[key]) {
+      fieldsToUpdate[objKey] = req.body[key];
     }
-
-    if (req.body[key] !== undefined && req.body[key] !== "") {
-      fieldsToUpdate[key] = req.body[key];
-    }
-  });
-
-  /* ================= NAME ================= */
+  };
 
   if (req.body.name_en || req.body.name_ar) {
     fieldsToUpdate.name = {
@@ -353,16 +339,12 @@ const updateProduct = asyncwrapper(async (req, res, next) => {
     };
   }
 
-  /* ================= DESCRIPTION ================= */
-
   if (req.body.description_en || req.body.description_ar) {
     fieldsToUpdate.description = {
       en: req.body.description_en || product.description.en,
       ar: req.body.description_ar || product.description.ar,
     };
   }
-
-  /* ================= MATERIAL ================= */
 
   if (req.body.material_en || req.body.material_ar) {
     fieldsToUpdate.material = {
@@ -371,35 +353,28 @@ const updateProduct = asyncwrapper(async (req, res, next) => {
     };
   }
 
-  /* ================= VARIANTS ================= */
-
-  if (variants.length > 0) {
-    fieldsToUpdate.variants = variants;
-  }
-
-  /* ================= NUMBERS VALIDATION ================= */
+  /* ================= NUMBERS ================= */
 
   ["price", "stock", "main_price"].forEach((field) => {
-    if (fieldsToUpdate[field] !== undefined) {
-      const val = Number(fieldsToUpdate[field]);
-
+    if (req.body[field] !== undefined) {
+      const val = Number(req.body[field]);
       if (isNaN(val)) {
         return next(appError.create(`${field} must be number`, 400));
       }
-
       fieldsToUpdate[field] = val;
     }
   });
 
-  /* ================= AUTO ACTIVE ================= */
+  /* ================= ACTIVE ================= */
 
   if (fieldsToUpdate.stock !== undefined) {
     fieldsToUpdate.isActive = fieldsToUpdate.stock > 0;
   }
 
-  /* ================= FILES GROUPING ================= */
+  /* ================= FILES ================= */
 
-  const files = req.files || [];
+  const files = Array.isArray(req.files) ? req.files : [];
+
   const filesMap = {};
 
   for (const file of files) {
@@ -409,37 +384,34 @@ const updateProduct = asyncwrapper(async (req, res, next) => {
     filesMap[file.fieldname].push(file);
   }
 
-  /* ================= VARIANTS IMAGES ================= */
+  /* ================= VARIANTS (KEEP OLD + ADD NEW IMAGES) ================= */
 
-  if (fieldsToUpdate.variants?.length) {
-    fieldsToUpdate.variants = fieldsToUpdate.variants.map((variant) => ({
-      ...variant,
-      images: Array.isArray(variant.images)
-        ? variant.images.filter(Boolean)
-        : [],
-    }));
+  if (Array.isArray(variants)) {
+    fieldsToUpdate.variants = variants.map((variant, index) => {
+      const oldVariant =
+        product.variants?.find((v) => v.color === variant.color) || {};
 
-    for (let i = 0; i < fieldsToUpdate.variants.length; i++) {
-      const key = `variants[${i}][images]`;
-      const imagesFiles = filesMap[key] || [];
+      const key = `variants[${index}][images]`;
+      const newImages = filesMap[key] || [];
 
-      const uploadedImages = await Promise.allSettled(
-        imagesFiles.map(async (file) => {
-          const result = await uploadToCloudinary(file.buffer);
-          return result.secure_url;
-        })
-      );
+      let uploadedImages = [];
 
-      const urls = uploadedImages
-        .filter((r) => r.status === "fulfilled")
-        .map((r) => r.value);
-
-      if (!fieldsToUpdate.variants[i].images) {
-        fieldsToUpdate.variants[i].images = [];
+      if (newImages.length > 0) {
+        uploadedImages = newImages
+          .map((file) => file.buffer)
+          .filter(Boolean);
       }
 
-      fieldsToUpdate.variants[i].images.push(...urls);
-    }
+      return {
+        ...oldVariant,
+        ...variant,
+        images: [
+          ...(oldVariant.images || []),
+          ...(variant.images || []),
+          ...uploadedImages,
+        ].filter(Boolean),
+      };
+    });
   }
 
   /* ================= UPDATE DB ================= */
